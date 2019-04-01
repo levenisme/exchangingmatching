@@ -1,4 +1,4 @@
-package main
+package dbctl
 
 import(
 	"database/sql"
@@ -27,6 +27,9 @@ const(
 	INSERT_TRANS_LEVEL = "REPEATABLE READ"
 	READ_TRANS_LEVEL = "SERIALIZABLE"
 )
+func Update_num_in_account_sym(db *sql.DB, num string, id string, sym string) (error) {
+	return nil
+}
 
 func Create_table(db *sql.DB) {
 	

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"unicode"
 	"strings"
-	"../dbctl"
 )
 
 type Node struct {
@@ -18,6 +17,7 @@ type Node struct {
 	Nodes     []Node     `xml:",any"`
 	Rst       string
 	Rst_type  int
+	AtrMap    map[string]string
 }
 
 const (
@@ -37,7 +37,7 @@ type RcqFormat struct{
 	Child []string
 }
 
-var ActFormat = RcqFormat{ "account", 1, []string{"id", "balance"}, []int{FMT_NUMBER, FMT_DECIMAL}, []string{} }
+var ActFormat = RcqFormat{ "account", 1, []string{"id", "balance"}, []int{FMT_NUMBER, FMT_DECIMAL}, []string{} , }
 
 var SymActFormat = RcqFormat { "account" , 1, []string{"id"}, []int{FMT_NUMBER}, []string{} }
 
@@ -107,8 +107,8 @@ func IsValidDecimalNumber (str string) bool {
 		}
 	}
 
-	return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= dbctl.DECIMAL_LEN)
-	//return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= 32)
+	//return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= dbctl.DECIMAL_LEN)
+	return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= 32)
 }
 
 func VerifyActNode (actNode *Node) (int, string) {
@@ -128,42 +128,13 @@ func VerifySymActNode (symActNode *Node) (int, string) {
 func VerifySymNode(symNode *Node) (int, string) {
 	return VerifyNode(symNode, &SymFormat)
 }
-func VerifyCreateNode(crtNode *Node) (int, string){
-	if crtNode == nil {
-		return ERROR_NODE, "Error: nil create node"
-	}
-    nodeOK, nodeAns := VerifyNode(crtNode, &CrtFormat)
-    if nodeOK == ERROR_NODE {
-      return nodeOK, nodeAns
-    }
-    for _, item := range crtNode.Nodes {
-		var ok int
-		var ans string
-		switch item.XMLName.Local {
-		case "account" :
-			ok, ans = VerifyActNode(&item)
-		case "symbol":
-			ok, ans = VerifySymNode(&item)
-			var sa_ok int
-			var sa_ans string
-			for _, sa_node := range item.Nodes {
-				sa_ok, sa_ans = VerifySymActNode(&sa_node)
-				if sa_ok == ERROR_NODE {
-					return sa_ok, sa_ans
-				}
-			}
-		}
-		if ok == ERROR_NODE {
-			return ok, ans
-		}
-	}
-	return VALID_NODE, ""
-}
+
 
 func VerifyNode (node *Node, rcq *RcqFormat) (int, string) {
 	if node == nil {
 		return ERROR_NODE, "Error:" + rcq.Type + " is nil"
 	}
+	node.AtrMap = make(map[string]string)
 	if node.XMLName.Local != rcq.Type {
 		return ERROR_NODE, "Error: This node is not " + rcq.Type + " " + node.XMLName.Local
 	}
@@ -173,6 +144,7 @@ func VerifyNode (node *Node, rcq *RcqFormat) (int, string) {
 	if len(node.Attrs) != len(rcq.Attr) {
 		return ERROR_NODE, "Error: Number of " + rcq.Type + " attribute"
 	} else {
+		
         cntMap := make(map[string]int)
         fmtMap := make (map[string]int)
 		for i,attr := range rcq.Attr {
@@ -181,6 +153,7 @@ func VerifyNode (node *Node, rcq *RcqFormat) (int, string) {
 		}
 		validCNT := 0
 		for _,attr := range node.Attrs {
+			node.AtrMap[attr.Name.Local] = attr.Value
 			mm, ok := cntMap[attr.Name.Local]
 			if !ok {
 				return ERROR_NODE, "Error: unknown attribute in the node"
@@ -219,21 +192,6 @@ func VerifyNode (node *Node, rcq *RcqFormat) (int, string) {
 	return VALID_NODE, ""
 }
 
-func HandleXML (node *Node) (int, string) {
-	if node == nil {
-		return ERROR_NODE, "Nil node"
-	}
-	var ok int
-	var ans string
-	switch node.XMLName.Local {
-	case "create" :
-		ok,ans = VerifyCreateNode(node)
-	default :
-		ok , ans = ERROR_NODE, "not known"
-	}
-	fmt.Println(ans)
-	return ok, ans
-}
 
 func main() {
 
