@@ -32,7 +32,7 @@ func Update_num_in_account_sym(db *sql.DB, num string, id string, sym string) (e
 }
 
 func Create_table(db *sql.DB) {
-	
+
 
 	//drop table if exists
 	_,err := db.Exec("DROP TABLE IF EXISTS order_info cascade;")
@@ -54,7 +54,7 @@ func Create_table(db *sql.DB) {
 
 	_,err = db.Exec(activity)
 
-	//create table order_info 
+	//create table order_info
 	order := ""
 	order += "CREATE TABLE order_info("
 	order += "order_id int primary key,"
@@ -64,15 +64,15 @@ func Create_table(db *sql.DB) {
 	order += "amount DECIMAL(32,2),"
 	order += "limit_price DECIMAL(32,2));"
 	_,err = db.Exec(order)
-	
-	//create table account_info 
+
+	//create table account_info
 	account := ""
 	account += "CREATE TABLE account_info("
 	account += "account_id text primary key,"
 	account += "balance DECIMAL(32,2));"
 	_,err = db.Exec(account)
 
-	//create table symbol_info 
+	//create table symbol_info
 	symbol := ""
 	symbol += "CREATE TABLE symbol_info("
 	symbol += "symbol_id text primary key);"
@@ -106,12 +106,13 @@ func CheckCount(rows *sql.Rows) (count int) {
  	for rows.Next() {
     	err:= rows.Scan(&count)
     	CheckErr(err)
-    }   
+    }
     return count
 }
 
 func CheckErr(err error) {
     if err != nil {
+      fmt.Println("%v", err)
         panic(err)
     }
 }
@@ -189,7 +190,7 @@ func Insert_accout_info(db *sql.DB, account_id string, balance string) error{
 	insert += account_id
 	insert += "', '"
 	insert += balance
-	insert += "'); " 
+	insert += "'); "
 	fmt.Println(insert)
 	_,err := db.Exec(insert)
 	return err
@@ -215,7 +216,7 @@ func Insert_activity_info(db *sql.DB) {
 }
 
 func Insert_order_info(db *sql.DB) {
-	
+
 }
 
 func Insert_symbol_info(db *sql.DB,sym string) error{
@@ -247,15 +248,15 @@ func Connect_database() (db *sql.DB, errstr error){
 	if err != nil{
 		fmt.Println("\nopen mysql error ", err)
 		return db, err
-	}	
-	
+	}
+
 
 	return db,nil
 }
 
 func main() {
 	//connect to the database
-	
+
 	db,_ := Connect_database()
 	fmt.Println("successfully connected!")
 	Create_table(db)

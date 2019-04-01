@@ -52,8 +52,8 @@ func HandleXML (node *xmlparser.Node) (int, string) {
 
 func HandleSymNode (item *xmlparser.Node) {
   ok, ans := xmlparser.VerifySymNode(item)
-  sym := item.XMLName.Local
   if ok == xmlparser.VALID_NODE {
+    sym := item.AtrMap["sym"]
     symok, _ := dbctl.Verify_symbol(db, sym)
     if symok == dbctl.INSERT {
       dbctl.Insert_symbol_info(db, sym)
@@ -201,7 +201,7 @@ func main() {
     return
   }
   defer db.Close()
-
+  dbctl.Create_table(db)
   for {
     conn, err := ln.Accept()
     if err != nil {
