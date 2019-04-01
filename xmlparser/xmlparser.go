@@ -144,7 +144,7 @@ func VerifyNode (node *Node, rcq *RcqFormat) (int, string) {
 	if len(node.Attrs) != len(rcq.Attr) {
 		return ERROR_NODE, "Error: Number of " + rcq.Type + " attribute"
 	} else {
-		
+
         cntMap := make(map[string]int)
         fmtMap := make (map[string]int)
 		for i,attr := range rcq.Attr {
@@ -210,6 +210,6 @@ func main() {
 	bbuf, _ := ioutil.ReadAll(xmlFile)
     var n Node
 	GetXmlNode(bbuf, &n)
-	HandleXML(&n)
+	//HandleXML(&n)
 
 }

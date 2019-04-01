@@ -51,12 +51,12 @@ func HandleXML (node *xmlparser.Node) (int, string) {
 }
 
 func HandleSymNode (item *xmlparser.Node) {
-  ok, ans = xmlparser.VerifySymNode(&item)
+  ok, ans := xmlparser.VerifySymNode(item)
   sym := item.XMLName.Local
   if ok == xmlparser.VALID_NODE {
-    symok, symerr = dbctl.Verify_symbol(sym)
+    symok, _ := dbctl.Verify_symbol(db, sym)
     if symok == dbctl.INSERT {
-      dbstl.Insert_symbol_info(db B,sym)
+      dbctl.Insert_symbol_info(db, sym)
     }
     for _, sa_node := range item.Nodes {
       HandleSymAccountNode(&sa_node, sym)
@@ -64,15 +64,15 @@ func HandleSymNode (item *xmlparser.Node) {
   }
   item.Rst = ans
   item.Rst_type = ok
-  
+
 }
 
 func HandleAccountNode (item *xmlparser.Node) {
-  ok, ans = xmlparser.VerifyActNode(&item)
+  ok, ans := xmlparser.VerifyActNode(item)
   if ok == xmlparser.VALID_NODE {
     id, _ := item.AtrMap["id"]
     balance, _ := item.AtrMap["balance"]
-    idans, iderr := dbctl.Verify_account(db, id)
+    idans, _ := dbctl.Verify_account(db, id)
     if idans == dbctl.INSERT {
       id_ist_err := dbctl.Insert_accout_info(db , id, balance)
       if id_ist_err != nil {
@@ -86,11 +86,11 @@ func HandleAccountNode (item *xmlparser.Node) {
 }
 
 func HandleSymAccountNode (item *xmlparser.Node, sym string) {
-  sa_ok, sa_ans := xmlparser.VerifySymActNode(&item)
+  sa_ok, sa_ans := xmlparser.VerifySymActNode(item)
   if sa_ok == xmlparser.VALID_NODE {
     id, _ := item.AtrMap["id"]
     num := string(item.Content)
-    idans, iderr := dbctl.Verify_symbol_account(db, sym, id)
+    idans, _ := dbctl.Verify_symbol_account(db, sym, id, num)
     if idans == dbctl.INSERT {
       id_ist_err := dbctl.Insert_account_to_symbol(db, sym, id, num)
       if id_ist_err != nil {
@@ -180,7 +180,7 @@ func HandleConnection(conn net.Conn){
   }
   var node xmlparser.Node
   err = xmlparser.GetXmlNode(contentBuf, &node)
-  xmlparser.HandleXML(&node)
+  HandleXML(&node)
   fmt.Println("goroutine end")
   defer conn.Close()
 }
@@ -201,7 +201,7 @@ func main() {
     return
   }
   defer db.Close()
-  
+
   for {
     conn, err := ln.Accept()
     if err != nil {
