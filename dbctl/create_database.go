@@ -1,4 +1,4 @@
-package dbctl
+package main
 
 import(
 	"database/sql"
@@ -28,9 +28,9 @@ const(
 	READ_TRANS_LEVEL = "SERIALIZABLE"
 )
 
-func Create_table() {
-	db,_ := Connect_database()
-	defer db.Close()
+func Create_table(db *sql.DB) {
+	
+
 	//drop table if exists
 	_,err := db.Exec("DROP TABLE IF EXISTS order_info cascade;")
 	_,err = db.Exec("DROP TABLE IF EXISTS activity_info cascade;")
@@ -97,7 +97,6 @@ func Create_table() {
 	if err != nil{
 		panic(err)
 	}
-	
 }
 
 func CheckCount(rows *sql.Rows) (count int) {
@@ -114,9 +113,7 @@ func CheckErr(err error) {
     }
 }
 
-func Verify_symbol( symbol_id string) (int,error){
-	db,_ := Connect_database()
-	defer db.Close()
+func Verify_symbol(db *sql.DB, symbol_id string) (int,error){
 	check_s := ""
 	check_s +="select symbol_id from symbol_info where symbol_id='"
 	check_s += symbol_id
@@ -132,9 +129,7 @@ func Verify_symbol( symbol_id string) (int,error){
 	return INSERT,err
 }
 
-func Verify_account(account_id string) (int, error) {
-	db,_ := Connect_database()
-	defer db.Close()
+func Verify_account(db *sql.DB, account_id string) (int, error) {
 	check_a := ""
 	check_a +="select account_id from account_info where account_id='"
 	check_a +=account_id
@@ -151,10 +146,8 @@ func Verify_account(account_id string) (int, error) {
 
 }
 
-func Verify_symbol_account(symbol_id string, account_id string, num string) (int, error) {
+func Verify_symbol_account(db *sql.DB, symbol_id string, account_id string, num string) (int, error) {
 	//check if account_id exists,if not, return 0, error
-	db,_ := Connect_database()
-	defer db.Close()
 	check_a := ""
 	check_a +="select account_id from account_info where account_id='"
 	check_a +=account_id
@@ -186,9 +179,7 @@ func Verify_symbol_account(symbol_id string, account_id string, num string) (int
 }
 
 
-func Insert_accout_info( account_id string, balance string) error{
-	db,_ := Connect_database()
-	defer db.Close()
+func Insert_accout_info(db *sql.DB, account_id string, balance string) error{
 	insert := ""
 	insert += "insert into account_info values ('"
 	insert += account_id
@@ -201,9 +192,7 @@ func Insert_accout_info( account_id string, balance string) error{
 
 }
 
-func Insert_account_to_symbol( sym string, account_id string, num string) error{
-	db,_ := Connect_database()
-	defer db.Close()
+func Insert_account_to_symbol(db *sql.DB, sym string, account_id string, num string) error{
 	insert := ""
 	insert += "insert into account_to_symbol(symbol_id,account_id,number) values ('"
 	insert += sym
@@ -217,17 +206,15 @@ func Insert_account_to_symbol( sym string, account_id string, num string) error{
 	return err
 }
 
-func Insert_activity_info() {
+func Insert_activity_info(db *sql.DB) {
 
 }
 
-func Insert_order_info() {
+func Insert_order_info(db *sql.DB) {
 	
 }
 
-func Insert_symbol_info(sym string) error{
-	db,_ := Connect_database()
-	defer db.Close()
+func Insert_symbol_info(db *sql.DB,sym string) error{
 	insert := ""
 	insert += "insert into symbol_info values ('"
 	insert += sym
