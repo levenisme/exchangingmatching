@@ -1,0 +1,6 @@
+<create>
+ <account id="11" balance="22"/>
+ <symbol sym="33">
+  <account id="44">55</account>
+ </symbol>
+</create>
