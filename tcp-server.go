@@ -38,19 +38,18 @@ func HandleXML (node *xmlparser.Node) (int, string) {
 	if node == nil {
 		return xmlparser.ERROR_NODE, "Nil node"
 	}
-	var ok int
 	var ans string
 	switch node.XMLName.Local {
 	case "create" :
-		HandleCreateNode(node)
+		ans = HandleCreateNode(node)
 	default :
-		ok , ans = xmlparser.ERROR_NODE, "not known"
+		ans = xmlparser.ERROR_NODE, "not known"
 	}
 	fmt.Println(ans)
 	return ok, ans
 }
 
-func HandleSymNode (item *xmlparser.Node) {
+func HandleSymNode (item *xmlparser.Node, response *string) {
   ok, ans := xmlparser.VerifySymNode(item)
   if ok == xmlparser.VALID_NODE {
     sym := item.AtrMap["sym"]
@@ -59,7 +58,7 @@ func HandleSymNode (item *xmlparser.Node) {
       dbctl.Insert_symbol_info(db, sym)
     }
     for _, sa_node := range item.Nodes {
-      HandleSymAccountNode(&sa_node, sym)
+      HandleSymAccountNode(&sa_node, sym, response)
     }
   }
   item.Rst = ans
@@ -67,10 +66,11 @@ func HandleSymNode (item *xmlparser.Node) {
 
 }
 
-func HandleAccountNode (item *xmlparser.Node) {
+func HandleAccountNode (item *xmlparser.Node, response *string) {
   ok, ans := xmlparser.VerifyActNode(item)
+  var id string
   if ok == xmlparser.VALID_NODE {
-    id, _ := item.AtrMap["id"]
+    id, _ = item.AtrMap["id"]
     balance, _ := item.AtrMap["balance"]
     idans, _ := dbctl.Verify_account(db, id)
     if idans == dbctl.INSERT {
@@ -83,12 +83,18 @@ func HandleAccountNode (item *xmlparser.Node) {
   }
   item.Rst = ans
   item.Rst_type = ok
+  if(ok == xmlparser.ERROR_NODE) {
+    response += fmt.Sprintf("  <error id=\"%s\">%s</error>\n", id, ans)
+  } else {
+    response += fmt.Sprintf("  <created id=\"%s\"/>\n", id)
+  }
 }
 
-func HandleSymAccountNode (item *xmlparser.Node, sym string) {
+func HandleSymAccountNode (item *xmlparser.Node, sym string, response *string) {
   sa_ok, sa_ans := xmlparser.VerifySymActNode(item)
+  var id string
   if sa_ok == xmlparser.VALID_NODE {
-    id, _ := item.AtrMap["id"]
+    id, _ = item.AtrMap["id"]
     num := string(item.Content)
     idans, _ := dbctl.Verify_symbol_account(db, sym, id, num)
     if idans == dbctl.INSERT {
@@ -108,9 +114,15 @@ func HandleSymAccountNode (item *xmlparser.Node, sym string) {
       sa_ans = "unkniwn database error 3 symactnode"
     }
   }
+  if(sa_ok == xmlparser.ERROR_NODE) {
+    response += fmt.Sprintf("  <error sym=\"%s\" id=\"%s\">%s</error>", sym, id, ans)
+  } else {
+    response += fmt.Sprintf("  <created sym=\"%s\" id=\"%s\"/>",sym, id)
+  }
   item.Rst = sa_ans
   item.Rst_type = sa_ok
 }
+
 
 func HandleCreateNode(crtNode *xmlparser.Node) (int, string){
   if crtNode == nil {
@@ -118,20 +130,23 @@ func HandleCreateNode(crtNode *xmlparser.Node) (int, string){
   }
   nodeOK, nodeAns := xmlparser.VerifyNode(crtNode, &xmlparser.CrtFormat)
   if nodeOK == xmlparser.ERROR_NODE {
-    return nodeOK, nodeAns
+    return  nodeAns
   }
+  response := "<results>\n"
   for _, item := range crtNode.Nodes {
     switch item.XMLName.Local {
     case "account" :
-      HandleAccountNode(&item)
+      HandleAccountNode(&item, &response)
     case "symbol":
-      HandleSymNode(&item)
+      HandleSymNode(&item, &response)
     default:
       item.Rst = "unknown node"
       item.Rst_type = xmlparser.ERROR_NODE
     }
   }
-  return xmlparser.VALID_NODE, ""
+  response += "</results>"
+  fmt.Println(response)
+  return xmlparser.VALID_NODE, response
 }
 
 func HandleConnection(conn net.Conn){
