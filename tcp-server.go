@@ -83,7 +83,7 @@ func HandleConnection(conn net.Conn){
   //fmt.Println(contentBuf)
   var node xmlparser.Node
   err = xmlparser.GetXmlNode(contentBuf, &node)
-  HandleXML(&node)
+  xmlparser.HandleXML(&node)
   fmt.Println("goroutine end")
   defer conn.Close()
 }

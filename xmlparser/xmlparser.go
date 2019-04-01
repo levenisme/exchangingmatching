@@ -26,7 +26,7 @@ const (
 	FMT_NOT_REC = 0
 	FMT_DECIMAL = 1
 	FMT_NUMBER = 2
-	
+
 )
 
 type RcqFormat struct{
@@ -45,13 +45,13 @@ var SymFormat = RcqFormat {"symbol", 2, []string{"sym"},[]int{FMT_NOT_REC},[]str
 
 var CrtFormat = RcqFormat {"create", 3, []string{}, []int{}, []string{"account", "symbol"}}
 
-var TsctFormat = RcqFormat{"transactions", 2, []string{"id"}, []string{FMT_NUMBER}, []string{"order", "query", "cancel"}  }
+var TsctFormat = RcqFormat{"transactions", 2, []string{"id"}, []int{FMT_NUMBER}, []string{"order", "query", "cancel"}  }
 
-var OdFormat RcqFormat { "order", 1, []string{"sym", "amount", "limit"}, []int {FMT_NOT_REC, FMT_DECIMAL, FMT_DECIMAL}, []string{}}
+var OdFormat = RcqFormat { "order", 1, []string{"sym", "amount", "limit"}, []int {FMT_NOT_REC, FMT_DECIMAL, FMT_DECIMAL}, []string{}}
 
-var QrFormat RcqFormat {"query", 1, []string{}, []int{}, []string{}}
+var QrFormat = RcqFormat {"query", 1, []string{}, []int{}, []string{}}
 
-var CcFormat RcqFormat {"cancel", 1, []string{}, []int{}, []string{}}
+var CcFormat = RcqFormat {"cancel", 1, []string{}, []int{}, []string{}}
 
 
 func (n *Node) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -107,8 +107,8 @@ func IsValidDecimalNumber (str string) bool {
 		}
 	}
 
-	//return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= dbctl.DECIMAL_LEN)
-	return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= 32)
+	return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= dbctl.DECIMAL_LEN)
+	//return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= 32)
 }
 
 func VerifyActNode (actNode *Node) (int, string) {
@@ -219,7 +219,7 @@ func VerifyNode (node *Node, rcq *RcqFormat) (int, string) {
 	return VALID_NODE, ""
 }
 
-func HandleXML (node &Node) (int, string) {
+func HandleXML (node *Node) (int, string) {
 	if node == nil {
 		return ERROR_NODE, "Nil node"
 	}
