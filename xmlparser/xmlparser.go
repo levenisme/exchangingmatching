@@ -111,6 +111,8 @@ func IsValidDecimalNumber (str string) bool {
 	return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= 32)
 }
 
+
+
 func VerifyActNode (actNode *Node) (int, string) {
 	return VerifyNode(actNode, &ActFormat)
 }

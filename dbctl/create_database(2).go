@@ -32,6 +32,53 @@ const(
 	NOT_EXIST = -1
 )
 
+//get transaction_id(order_id), num, price from order_info
+func get_compare_info(db *sql.DB, sym string, amount string, limit string, is_buy bool){
+	query := "select order_info.order_id, open, price from order_info where (type == )" + EXECUTING + ") and (limit " + is_buy? "<= ":">=" + limit + ") "
+	query = query + "(open " + is_buy? " < 0) ":" > 0) " +"order by limit " + is_buy? "ASC":"DESC"
+	fmt.Println(query)
+	db.Exec(query)
+}
+
+//update number in account_to_sym
+func update_num_in_account_sym(db *sql.DB, num string, account_id string, symbol_id string) {
+	update := "update account_to_symbol set number = "
+	update = update + num + " where (account_id = '"
+	update = update + account_id + "') and (symbol_id ='"
+	update = update + symbol_id + "');"
+	fmt.Println(update)
+	db.Exec(update)
+}
+
+
+//update balance in account_info
+func update_balance(db *sql.DB, balance string, account_id string) {
+	update := "update account_info set balance = "
+	update = update + balance + " where (account_id = '"
+	update = update + account_id + "');"
+	fmt.Println(update)
+	db.Exec(update)
+}
+
+//update open in order_info
+func update_open(db *sql.DB, open string, order_id string) {
+	update := "update order_info set open = "
+	update = update + open + " where (order_id = "
+	update = update + order_id + ");"
+	fmt.Println(update)
+	db.Exec(update)
+}
+
+//when cancel, update type and time in order_info
+func update_type_and_time(db *sql.DB, order_id string) {
+	time_now := time.Now().Unix()
+	update := "update order_info set type = "
+	update = update + strconv.FormatInt(CANCELLED, 10) + ", time = " + strconv.FormatInt(time_now, 10) + " where order_id = " + order_id +"; "
+	fmt.Println(update)
+	db.Exec(update)
+}
+
+
 //get the num of the sym that an acount have
 //if there is no num, it will return "" 
 func get_position(db *sql.DB, account_id string, sym string) (string) {
@@ -94,7 +141,7 @@ func get_type(db *sql.DB, order_id string) int {
 }
 
 
-
+//if query, return xml of status
 func get_status_xml(db *sql.DB, order_id string) string{
 	status := "<status id = "
 	status = status + order_id + ">\n"
@@ -165,7 +212,7 @@ func Create_table(db *sql.DB) {
 	order += "CREATE TABLE order_info("
 	order += "order_id serial primary key,"
 	order += "account_id int,"
-	order += "open int,"
+	order += "open DECIMAL(32,2),"
 	order += "type int,"
 	order += "amount DECIMAL(32,2),"
 	order += "limit_price DECIMAL(32,2),"
@@ -224,6 +271,7 @@ func CheckErr(err error) {
     }
 }
 
+//check if symbol is in symbol table, if not, could insert
 func Verify_symbol(db *sql.DB, symbol_id string) (int,error){
 	check_s := ""
 	check_s +="select count(symbol_id) from symbol_info where symbol_id='"
@@ -241,6 +289,7 @@ func Verify_symbol(db *sql.DB, symbol_id string) (int,error){
 	return INSERT,err
 }
 
+//check if account is in account table, if not, could insert
 func Verify_account(db *sql.DB, account_id string) (int, error) {
 	check_a := ""
 	check_a +="select count(account_id) from account_info where account_id='"
@@ -258,6 +307,8 @@ func Verify_account(db *sql.DB, account_id string) (int, error) {
 
 }
 
+//check id account have a specific symbol, id account not exist, return err, if exist but have
+//no sym, return insert, it both exists, return update
 func Verify_symbol_account(db *sql.DB, symbol_id string, account_id string, num string) (int, error) {
 	//check if account_id exists,if not, return 0, error
 	check_a := ""
@@ -333,7 +384,7 @@ func Insert_order_info(db *sql.DB, account_id string, sym string, amount string,
 	CheckErr(err)
 	fmt.Println(query)
 	id, err := rs.LastInsertId()
-	return id
+	return id+1
 }
 
 func Insert_symbol_info(db *sql.DB,sym string) error{
@@ -402,9 +453,14 @@ func main() {
 	fmt.Println(num)
 	num= get_position(db, "12345","abcd" )
 	fmt.Println(num)
-
+	fmt.Println("return id")
 	fmt.Println(Insert_order_info(db, "12345", "abcd", "100000", "2"))
 	fmt.Println(get_status_xml(db, "2"))
 	fmt.Println(get_status_xml(db, "1"))
 	Insert_activity_info(db, "1", "100", "100")
+	update_num_in_account_sym(db, "99999", "123", "abcd")
+	update_balance(db, "9999999", "12345")
+	update_open(db, "99999", "1")
+	update_type_and_time(db, "1")
+	get_compare_info(db, "abcd", "100", "11111", 1)
 }
