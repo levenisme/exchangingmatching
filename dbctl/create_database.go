@@ -34,9 +34,9 @@ const(
 
 //get transaction_id(order_id), num, price from order_info
 func get_compare_info(db *sql.DB, sym string, amount string, limit string, is_buy bool){
-	query_buy := fmt.Sprintf("select order_id, open, limit_price from order_info where ((type == %s ) and (limit_price <= %s) and (open < 0 )) order by limit ASC, order_id ASC;", string(EXECUTING), limit)
+	query_buy := fmt.Sprintf("select order_id, open, limit_price from order_info where ((type == 2 ) and (limit_price <= %s) and (open < 0 )) order by limit ASC, order_id ASC;", limit)
 
-	query_sell := fmt.Sprintf("select order_id, open, limit_price from order_info where ((type == %s ) and (limit_price >= %s) and (open > 0 )) order by limit DESC, order_id ASC;", string(EXECUTING), limit)
+	query_sell := fmt.Sprintf("select order_id, open, limit_price from order_info where ((type == 2 ) and (limit_price >= %s) and (open > 0 )) order by limit DESC, order_id ASC;",  limit)
 
 	if is_buy {
 		fmt.Println(query_buy)
@@ -470,5 +470,5 @@ func main() {
 	update_balance(db, "9999999", "12345")
 	update_open(db, "99999", "1")
 	update_type_and_time(db, "1")
-	get_compare_info(db, "abcd", "100", "11111", 1)
+	get_compare_info(db, "abcd", "100", "11111", true)
 }
