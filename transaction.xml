@@ -1,0 +1,5 @@
+<transactions id="ACCOUNT_ID"> #contains 1 or more of the below children
+ <order sym="SYM" amount="AMT" limit="LMT"/>
+ <query id="TRANS_ID">
+ <cancel id="TRANS_ID">
+</transactions>

@@ -11,7 +11,7 @@ import (
  "./dbctl"
  "database/sql"
  "sync"
- //"runtime"
+ "runtime"
  "bytes"
 )
 
@@ -114,11 +114,12 @@ func HandleSymAccountNode (item *xmlparser.Node, sym string, response *bytes.Buf
         sa_ans = "unknown database error 1 symactnode"
       }
     } else if idans == dbctl.UPDATE {
-      sa_ist_err := dbctl.Update_num_in_account_sym(db, num, id, sym)
-      if sa_ist_err != nil {
+      //sa_ist_err :=
+      dbctl.Update_num_in_account_sym(db, num, id, sym)
+      //if sa_ist_err != nil {
         sa_ok = xmlparser.VALID_NODE
         sa_ans = ""
-      }
+      //}
     } else {
       sa_ok = xmlparser.ERROR_NODE
       sa_ans = "Account doesn't exist in the database"
@@ -143,15 +144,15 @@ func within(wg *sync.WaitGroup, f func(*xmlparser.Node), node *xmlparser.Node) {
 }
 
 func HandleOrderNode(odNode *xmlparser.Node) {
-  noed.Rst = "I am order \n"
+  odNode.Rst = "I am order \n"
 }
 
 func HandleQueryNode(qrNode *xmlparser.Node) {
-  node.Rst = "I am query \n"
+  qrNode.Rst = "I am query \n"
 }
 
 func HandleCancelNode(ccNode *xmlparser.Node) {
-  node.Rst = "I am cancel \n"
+  ccNode.Rst = "I am cancel \n"
 }
 
 func CollectResponse( node *xmlparser.Node, response *bytes.Buffer) {
@@ -162,13 +163,14 @@ func CollectResponse( node *xmlparser.Node, response *bytes.Buffer) {
 }
 
 func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
-  if node == nil {
+  if tsctNode == nil {
     return "Error: nil transaction node"
   }
-  nodeOK, nodeAns := xmlparser.VerifyNode(node, &xmlparser.TsctFormat)
+  nodeOK, nodeAns := xmlparser.VerifyNode(tsctNode, &xmlparser.TsctFormat)
   if nodeOK == xmlparser.ERROR_NODE {
     return nodeAns
   }
+  var wg sync.WaitGroup
   for _, item := range tsctNode.Nodes {
     switch item.XMLName.Local {
     case "order":
@@ -186,7 +188,7 @@ func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
   var response bytes.Buffer
   response.WriteString("<result>/n")
   for _, item := range tsctNode.Nodes {
-    CollectResponse( item, &response)
+    CollectResponse( &item, &response)
   }
   response.WriteString("</results>")
   return response.String()
