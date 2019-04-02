@@ -22,7 +22,13 @@ type Node struct {
 
 const (
 	VALID_NODE = 0
-	ERROR_NODE = 1
+	ERROR_NODE = 1 // order error
+	OPENED_NODE = 2 // order ok
+	STATUS_NODE = 3 // query ok
+	CANCEL_NODE = 4 // cancel ok
+	STATUS_ERROR = 5 // query error
+	CANCEL_ERROR = 6 // cancel error
+	
 	FMT_NOT_REC = 0
 	FMT_DECIMAL = 1
 	FMT_NUMBER = 2

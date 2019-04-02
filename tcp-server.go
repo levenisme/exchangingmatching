@@ -10,6 +10,9 @@ import (
  "./xmlparser"
  "./dbctl"
  "database/sql"
+ "sync"
+ //"runtime"
+ "bytes"
 )
 
 var db *sql.DB
@@ -41,7 +44,9 @@ func HandleXML (node *xmlparser.Node) (string) {
 	var ans string
 	switch node.XMLName.Local {
 	case "create" :
-		ans = HandleCreateNode(node)
+    ans = HandleCreateNode(node)
+  case "transactions" :
+    ans = HandleTransactionNode(node)
 	default :
 		ans = "not known"
 	}
@@ -49,7 +54,9 @@ func HandleXML (node *xmlparser.Node) (string) {
 	return ans
 }
 
-func HandleSymNode (item *xmlparser.Node, response *string) {
+
+
+func HandleSymNode (item *xmlparser.Node, response *bytes.Buffer) {
   ok, ans := xmlparser.VerifySymNode(item)
   if ok == xmlparser.VALID_NODE {
     sym := item.AtrMap["sym"]
@@ -66,7 +73,7 @@ func HandleSymNode (item *xmlparser.Node, response *string) {
 
 }
 
-func HandleAccountNode (item *xmlparser.Node, response *string) {
+func HandleAccountNode (item *xmlparser.Node, response *bytes.Buffer) {
   ok, ans := xmlparser.VerifyActNode(item)
   var id string
   if ok == xmlparser.VALID_NODE {
@@ -87,13 +94,13 @@ func HandleAccountNode (item *xmlparser.Node, response *string) {
   item.Rst = ans
   item.Rst_type = ok
   if(ok == xmlparser.ERROR_NODE) {
-    *response += fmt.Sprintf("  <error id=\"%s\">%s</error>\n", id, ans)
+    response.WriteString( fmt.Sprintf("  <error id=\"%s\">%s</error>\n", id, ans) )
   } else {
-    *response += fmt.Sprintf("  <created id=\"%s\"/>\n", id)
+    response.WriteString( fmt.Sprintf("  <created id=\"%s\"/>\n", id) )
   }
 }
 
-func HandleSymAccountNode (item *xmlparser.Node, sym string, response *string) {
+func HandleSymAccountNode (item *xmlparser.Node, sym string, response *bytes.Buffer) {
   sa_ok, sa_ans := xmlparser.VerifySymActNode(item)
   var id string
   if sa_ok == xmlparser.VALID_NODE {
@@ -118,14 +125,72 @@ func HandleSymAccountNode (item *xmlparser.Node, sym string, response *string) {
     }
   }
   if(sa_ok == xmlparser.ERROR_NODE) {
-    *response += fmt.Sprintf("  <error sym=\"%s\" id=\"%s\">%s</error>\n", sym, id, sa_ans)
+    response.WriteString(fmt.Sprintf("  <error sym=\"%s\" id=\"%s\">%s</error>\n", sym, id, sa_ans))
   } else {
-    *response += fmt.Sprintf("  <created sym=\"%s\" id=\"%s\"/>\n",sym, id)
+    response.WriteString( fmt.Sprintf("  <created sym=\"%s\" id=\"%s\"/>\n",sym, id))
   }
   item.Rst = sa_ans
   item.Rst_type = sa_ok
 }
 
+// master goroutine wait for children go routine
+func within(wg *sync.WaitGroup, f func(*xmlparser.Node), node *xmlparser.Node) {
+  wg.Add(1)
+  go func() {
+      defer wg.Done()
+      f(node)
+  }()
+}
+
+func HandleOrderNode(odNode *xmlparser.Node) {
+  noed.Rst = "I am order \n"
+}
+
+func HandleQueryNode(qrNode *xmlparser.Node) {
+  node.Rst = "I am query \n"
+}
+
+func HandleCancelNode(ccNode *xmlparser.Node) {
+  node.Rst = "I am cancel \n"
+}
+
+func CollectResponse( node *xmlparser.Node, response *bytes.Buffer) {
+  if node == nil {
+    return
+  }
+  response.WriteString (node.Rst)
+}
+
+func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
+  if node == nil {
+    return "Error: nil transaction node"
+  }
+  nodeOK, nodeAns := xmlparser.VerifyNode(node, &xmlparser.TsctFormat)
+  if nodeOK == xmlparser.ERROR_NODE {
+    return nodeAns
+  }
+  for _, item := range tsctNode.Nodes {
+    switch item.XMLName.Local {
+    case "order":
+      within(&wg, HandleOrderNode, &item)
+    case "query":
+      within(&wg, HandleQueryNode, &item)
+    case "cancel":
+      within(&wg, HandleCancelNode, &item)
+    default:
+      item.Rst = "unknown node"
+      item.Rst_type = xmlparser.ERROR_NODE
+    }
+  }
+  wg.Wait() // barrier
+  var response bytes.Buffer
+  response.WriteString("<result>/n")
+  for _, item := range tsctNode.Nodes {
+    CollectResponse( item, &response)
+  }
+  response.WriteString("</results>")
+  return response.String()
+}
 
 func HandleCreateNode(crtNode *xmlparser.Node) ( string){
   if crtNode == nil {
@@ -135,7 +200,8 @@ func HandleCreateNode(crtNode *xmlparser.Node) ( string){
   if nodeOK == xmlparser.ERROR_NODE {
     return  nodeAns
   }
-  response := "<results>\n"
+  var response bytes.Buffer
+  response.WriteString("<results>\n")
   for _, item := range crtNode.Nodes {
     switch item.XMLName.Local {
     case "account" :
@@ -147,8 +213,7 @@ func HandleCreateNode(crtNode *xmlparser.Node) ( string){
       item.Rst_type = xmlparser.ERROR_NODE
     }
   }
-  response += "</results>"
-  return response
+  return response.String()
 }
 
 func HandleConnection(conn net.Conn){
@@ -203,6 +268,7 @@ func HandleConnection(conn net.Conn){
 }
 
 func main() {
+  runtime.GOMAXPROCS(runtime.NumCPU())
   fmt.Println("Launching server...")
   // listen on all interfaces
   ln, err := net.Listen("tcp", ":12345")

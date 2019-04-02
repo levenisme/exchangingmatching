@@ -1,4 +1,4 @@
-package main
+package dbctl
 
 import(
 	"database/sql"
