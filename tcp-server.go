@@ -34,19 +34,19 @@ func GetContentOfLength(c chan bool, r *bufio.Reader, length uint64, cbuf []byte
   defer close(c)
 }
 
-func HandleXML (node *xmlparser.Node) (int, string) {
+func HandleXML (node *xmlparser.Node) (string) {
 	if node == nil {
-		return xmlparser.ERROR_NODE, "Nil node"
+		return "Nil node"
 	}
 	var ans string
 	switch node.XMLName.Local {
 	case "create" :
 		ans = HandleCreateNode(node)
 	default :
-		ans = xmlparser.ERROR_NODE, "not known"
+		ans = "not known"
 	}
 	fmt.Println(ans)
-	return ok, ans
+	return ans
 }
 
 func HandleSymNode (item *xmlparser.Node, response *string) {
@@ -79,14 +79,17 @@ func HandleAccountNode (item *xmlparser.Node, response *string) {
         ok = xmlparser.ERROR_NODE
         ans = "unknown database error 1 act node"
       }
+    } else {
+      ok = xmlparser.ERROR_NODE
+      ans = "Account already exisits"
     }
   }
   item.Rst = ans
   item.Rst_type = ok
   if(ok == xmlparser.ERROR_NODE) {
-    response += fmt.Sprintf("  <error id=\"%s\">%s</error>\n", id, ans)
+    *response += fmt.Sprintf("  <error id=\"%s\">%s</error>\n", id, ans)
   } else {
-    response += fmt.Sprintf("  <created id=\"%s\"/>\n", id)
+    *response += fmt.Sprintf("  <created id=\"%s\"/>\n", id)
   }
 }
 
@@ -106,27 +109,27 @@ func HandleSymAccountNode (item *xmlparser.Node, sym string, response *string) {
     } else if idans == dbctl.UPDATE {
       sa_ist_err := dbctl.Update_num_in_account_sym(db, num, id, sym)
       if sa_ist_err != nil {
-        sa_ok = xmlparser.ERROR_NODE
-        sa_ans = "unknown database error 2 symactnode"
+        sa_ok = xmlparser.VALID_NODE
+        sa_ans = ""
       }
     } else {
       sa_ok = xmlparser.ERROR_NODE
-      sa_ans = "unkniwn database error 3 symactnode"
+      sa_ans = "Account doesn't exist in the database"
     }
   }
   if(sa_ok == xmlparser.ERROR_NODE) {
-    response += fmt.Sprintf("  <error sym=\"%s\" id=\"%s\">%s</error>", sym, id, ans)
+    *response += fmt.Sprintf("  <error sym=\"%s\" id=\"%s\">%s</error>\n", sym, id, sa_ans)
   } else {
-    response += fmt.Sprintf("  <created sym=\"%s\" id=\"%s\"/>",sym, id)
+    *response += fmt.Sprintf("  <created sym=\"%s\" id=\"%s\"/>\n",sym, id)
   }
   item.Rst = sa_ans
   item.Rst_type = sa_ok
 }
 
 
-func HandleCreateNode(crtNode *xmlparser.Node) (int, string){
+func HandleCreateNode(crtNode *xmlparser.Node) ( string){
   if crtNode == nil {
-    return xmlparser.ERROR_NODE, "Error: nil create node"
+    return  "Error: nil create node"
   }
   nodeOK, nodeAns := xmlparser.VerifyNode(crtNode, &xmlparser.CrtFormat)
   if nodeOK == xmlparser.ERROR_NODE {
@@ -145,8 +148,7 @@ func HandleCreateNode(crtNode *xmlparser.Node) (int, string){
     }
   }
   response += "</results>"
-  fmt.Println(response)
-  return xmlparser.VALID_NODE, response
+  return response
 }
 
 func HandleConnection(conn net.Conn){
