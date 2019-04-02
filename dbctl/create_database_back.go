@@ -34,10 +34,26 @@ const(
 
 //get transaction_id(order_id), num, price from order_info
 func get_compare_info(db *sql.DB, sym string, amount string, limit string, is_buy bool){
-	query := "select order_info.order_id, open, price from order_info where (type == )" + EXECUTING + ") and (limit " + is_buy? "<= ":">=" + limit + ") "
-	query = query + "(open " + is_buy? " < 0) ":" > 0) " +"order by limit " + is_buy? "ASC":"DESC"
-	fmt.Println(query)
-	db.Exec(query)
+	query_buy := fmt.Sprintf(
+		'select order_id, open, price from order_info 
+		where ((type == %s ) and (limit <= %s) and (open < 0 )) 
+		order by limit ASC, order_id ASC;', 
+	string(EXECUTING), limit)
+
+	query_sell := fmt.Sprintf(
+		'select order_id, open, price from order_info 
+		where ((type == %s ) and (limit >= %s) and (open > 0 )) 
+		order by limit DESC, order_id ASC;', 
+	string(EXECUTING), limit)
+
+	if is_buy {
+		fmt.Println(query_buy)
+		db.Exec(query_buy)
+	} else {
+		fmt.Println(query_sell)
+		db.
+	}
+	
 }
 
 //update number in account_to_sym
