@@ -28,7 +28,7 @@ const (
 	CANCEL_NODE = 4 // cancel ok
 	STATUS_ERROR = 5 // query error
 	CANCEL_ERROR = 6 // cancel error
-	
+
 	FMT_NOT_REC = 0
 	FMT_DECIMAL = 1
 	FMT_NUMBER = 2
@@ -82,8 +82,9 @@ func depthOfNode(n *Node ) int {
 		return 0
 	}
 	ans := 0
-	for _, ch := range n.Nodes {
-		dOfCh := depthOfNode(&ch)
+    for i:=0; i < len(n.Nodes); i++ {
+        ch := &n.Nodes[i]
+		dOfCh := depthOfNode(ch)
 		if ans <  dOfCh {
 			ans = dOfCh
 		}
@@ -191,8 +192,8 @@ func VerifyNode (node *Node, rcq *RcqFormat) (int, string) {
 	for _, fmt_child := range rcq.Child {
 		childMap[fmt_child] = 1
 	}
-	for _,ch := range node.Nodes {
-		_, ok := childMap[ch.XMLName.Local]
+    for i := 0 ; i < len(node.Nodes); i++ {
+		_, ok := childMap[node.Nodes[i].XMLName.Local]
 		if !ok {
 			return ERROR_NODE, "Error: has invalid child node"
 		}

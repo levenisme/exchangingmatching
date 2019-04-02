@@ -64,8 +64,8 @@ func HandleSymNode (item *xmlparser.Node, response *bytes.Buffer) {
     if symok == dbctl.INSERT {
       dbctl.Insert_symbol_info(db, sym)
     }
-    for _, sa_node := range item.Nodes {
-      HandleSymAccountNode(&sa_node, sym, response)
+    for i:=0; i < len(item.Nodes); i++ {
+      HandleSymAccountNode(&item.Nodes[i], sym, response)
     }
   }
   item.Rst = ans
@@ -144,14 +144,17 @@ func within(wg *sync.WaitGroup, f func(*xmlparser.Node), node *xmlparser.Node) {
 }
 
 func HandleOrderNode(odNode *xmlparser.Node) {
+  //fmt.Println("ooooooooorder")
   odNode.Rst = "I am order \n"
 }
 
 func HandleQueryNode(qrNode *xmlparser.Node) {
+  //fmt.Println("qqqqqqqqqqquery")
   qrNode.Rst = "I am query \n"
 }
 
 func HandleCancelNode(ccNode *xmlparser.Node) {
+  //fmt.Println("cccccccccccancel")
   ccNode.Rst = "I am cancel \n"
 }
 
@@ -171,24 +174,26 @@ func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
     return nodeAns
   }
   var wg sync.WaitGroup
-  for _, item := range tsctNode.Nodes {
-    switch item.XMLName.Local {
+  //fmt.Println(*tsctNode)
+  //fmt.Println("%s  length: %d", tsctNode.XMLName.Local ,len(tsctNode.Nodes))
+  for i:=0 ; i < len(tsctNode.Nodes) ; i++ {
+    switch tsctNode.Nodes[i].XMLName.Local {
     case "order":
-      within(&wg, HandleOrderNode, &item)
+      within(&wg, HandleOrderNode, &tsctNode.Nodes[i])
     case "query":
-      within(&wg, HandleQueryNode, &item)
+      within(&wg, HandleQueryNode, &tsctNode.Nodes[i])
     case "cancel":
-      within(&wg, HandleCancelNode, &item)
+      within(&wg, HandleCancelNode, &tsctNode.Nodes[i])
     default:
-      item.Rst = "unknown node"
-      item.Rst_type = xmlparser.ERROR_NODE
+      tsctNode.Nodes[i].Rst = "unknown node"
+      tsctNode.Nodes[i].Rst_type = xmlparser.ERROR_NODE
     }
   }
   wg.Wait() // barrier
   var response bytes.Buffer
-  response.WriteString("<result>/n")
-  for _, item := range tsctNode.Nodes {
-    CollectResponse( &item, &response)
+  response.WriteString("<result>\n")
+  for i := 0; i < len(tsctNode.Nodes); i++  {
+    CollectResponse( &tsctNode.Nodes[i], &response)
   }
   response.WriteString("</results>")
   return response.String()
@@ -204,15 +209,15 @@ func HandleCreateNode(crtNode *xmlparser.Node) ( string){
   }
   var response bytes.Buffer
   response.WriteString("<results>\n")
-  for _, item := range crtNode.Nodes {
-    switch item.XMLName.Local {
+  for i:=0 ; i < len(crtNode.Nodes); i++ {
+    switch crtNode.Nodes[i].XMLName.Local {
     case "account" :
-      HandleAccountNode(&item, &response)
+      HandleAccountNode(&crtNode.Nodes[i], &response)
     case "symbol":
-      HandleSymNode(&item, &response)
+      HandleSymNode(&crtNode.Nodes[i], &response)
     default:
-      item.Rst = "unknown node"
-      item.Rst_type = xmlparser.ERROR_NODE
+      crtNode.Nodes[i].Rst = "unknown node"
+      crtNode.Nodes[i].Rst_type = xmlparser.ERROR_NODE
     }
   }
   return response.String()
