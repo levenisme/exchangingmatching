@@ -34,9 +34,9 @@ const(
 
 //get transaction_id(order_id), num, price from order_info
 func get_compare_info(db *sql.DB, sym string, amount string, limit string, is_buy bool){
-	query_buy := fmt.Sprintf("select order_id, open, limit_price from order_info where ((type == 2 ) and (limit_price <= %s) and (open < 0 )) order by limit ASC, order_id ASC;", limit)
+	query_buy := fmt.Sprintf("select order_id, open, limit_price from order_info where ((type == 2 ) and (limit_price <= %s) and (open < 0 )) order by limit_price ASC, order_id ASC;", limit)
 
-	query_sell := fmt.Sprintf("select order_id, open, limit_price from order_info where ((type == 2 ) and (limit_price >= %s) and (open > 0 )) order by limit DESC, order_id ASC;",  limit)
+	query_sell := fmt.Sprintf("select order_id, open, limit_price from order_info where ((type == 2 ) and (limit_price >= %s) and (open > 0 )) order by limit_price DESC, order_id ASC;",  limit)
 
 	if is_buy {
 		fmt.Println(query_buy)
@@ -45,7 +45,7 @@ func get_compare_info(db *sql.DB, sym string, amount string, limit string, is_bu
 		fmt.Println(query_sell)
 		db.Exec(query_sell)
 	}
-	
+
 }
 
 //update number in account_to_sym
@@ -88,7 +88,7 @@ func update_type_and_time(db *sql.DB, order_id string) {
 
 
 //get the num of the sym that an acount have
-//if there is no num, it will return "" 
+//if there is no num, it will return ""
 func get_position(db *sql.DB, account_id string, sym string) (string) {
 	pos := "select number from account_to_symbol where (account_id = '"
 	pos += account_id
@@ -103,7 +103,7 @@ func get_position(db *sql.DB, account_id string, sym string) (string) {
 	return num
 }
 
-//get balance of an account 
+//get balance of an account
 func get_balance(db *sql.DB, account_id string)(string){
 	query := "select balance from account_info where account_id = '"
 	query += account_id
@@ -119,7 +119,7 @@ func get_balance(db *sql.DB, account_id string)(string){
 //get open shares or cancel time from order_info table, differentiated by input
 func get_open_or_caceltime(db *sql.DB, order_id string, check string) int64 {
 	query := "select " + check + " from order_info where order_id = '"
-	query += order_id 
+	query += order_id
 	query += "'; "
 	fmt.Println(query)
 	row := db.QueryRow(query)
@@ -170,7 +170,7 @@ func get_status_xml(db *sql.DB, order_id string) string{
 		status = status + "<open shares = " + strconv.FormatInt(open_shares,10) + ">\n"
 	}
 
-	//response with the executed shares 
+	//response with the executed shares
 	query := "select shares, price, activity_info.time from activity_info,order_info where (order_info.order_id = activity_info.order_id) and  (order_info.order_id = '"
 	query += order_id
 	query += "');"
@@ -181,7 +181,7 @@ func get_status_xml(db *sql.DB, order_id string) string{
 		status += "<executed shares = "
 		var exe_shares int64
 		var exe_price float64
-		var exe_time int64 
+		var exe_time int64
 		rows.Columns()
 		err = rows.Scan(&exe_shares, &exe_price, &exe_time)
 		CheckErr(err)
@@ -192,7 +192,7 @@ func get_status_xml(db *sql.DB, order_id string) string{
 }
 
 func Create_table(db *sql.DB) {
-	
+
 
 	//drop table if exists
 	_,err := db.Exec("DROP TABLE IF EXISTS order_info cascade;")
@@ -215,7 +215,7 @@ func Create_table(db *sql.DB) {
 	fmt.Println(activity)
 	_,err = db.Exec(activity)
 
-	//create table order_info 
+	//create table order_info
 	order := ""
 	order += "CREATE TABLE order_info("
 	order += "order_id serial primary key,"
@@ -227,15 +227,15 @@ func Create_table(db *sql.DB) {
 	order += "time bigint);"
 	fmt.Println(order)
 	_,err = db.Exec(order)
-	
-	//create table account_info 
+
+	//create table account_info
 	account := ""
 	account += "CREATE TABLE account_info("
 	account += "account_id text primary key,"
 	account += "balance DECIMAL(32,2));"
 	_,err = db.Exec(account)
 
-	//create table symbol_info 
+	//create table symbol_info
 	symbol := ""
 	symbol += "CREATE TABLE symbol_info("
 	symbol += "symbol_id text primary key);"
@@ -269,7 +269,7 @@ func CheckCount(rows *sql.Rows) (count int) {
  	for rows.Next() {
     	err:= rows.Scan(&count)
     	CheckErr(err)
-    }   
+    }
     return count
 }
 
@@ -356,7 +356,7 @@ func Insert_accout_info(db *sql.DB, account_id string, balance string) error{
 	insert += account_id
 	insert += "', '"
 	insert += balance
-	insert += "'); " 
+	insert += "'); "
 	fmt.Println(insert)
 	_,err := db.Exec(insert)
 	return err
@@ -424,15 +424,15 @@ func Connect_database() (db *sql.DB, errstr error){
 	if err != nil{
 		fmt.Println("\nopen mysql error ", err)
 		return db, err
-	}	
-	
+	}
+
 
 	return db,nil
 }
 
 func main() {
 	//connect to the database
-	
+
 	db,_ := Connect_database()
 	fmt.Println("successfully connected!")
 	Create_table(db)
