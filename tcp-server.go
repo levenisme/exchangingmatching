@@ -176,7 +176,7 @@ func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
       dbctl.Insert_activity_info(db, strconv.FormatInt(cur_order_id, 64), line[0], line[1] )
     }
     dbctl.Add_num_balance_account_info(db, account_id, strconv.FormatFloat(income, 'f', 2, 64 ))
-    odNode.Rst = fmt.Sprintf("<opened sym=\"%s\" amount=\"%s\" limit=\"%s\" id=\"%d\">\n", sym, amount,limit,cur_order_id)
+    odNode.Rst = fmt.Sprintf("  <opened sym=\"%s\" amount=\"%s\" limit=\"%s\" id=\"%d\">\n", sym, amount,limit,cur_order_id)
   } else {
     odNode.Rst_type = ok
     odNode.Rst = ans
@@ -282,6 +282,12 @@ func HandleCancelNode(ccNode *xmlparser.Node, account_id string) {
     if(dbctl.Authorize_account_order(db, account_id, order_id)) {
       open := dbctl.Get_open_or_caceltime(db, order_id, "open")
       sym := dbctl.Get_open_or_caceltime(db, order_id, "symbol_id")
+      type_info := dbctl.Get_open_or_caceltime(db, order_id, "type")
+      if type_info_v , _ := strconv.Atoi(type_info); type_info_v == CANCELLED {
+        ccNode.Rst = fmt.Sprintf("  <error id=\"%s\">%s</error>\n",order_id,"This order has been canceled")
+        ccNode.Rst_type = ok
+        return
+      }
       open_v , _ := strconv.ParseFloat(open, 64)
       if(math.Abs(open_v) > 0.005) {
         dbctl.Update_type_and_time(db, order_id)
@@ -298,7 +304,7 @@ func HandleCancelNode(ccNode *xmlparser.Node, account_id string) {
       ccNode.Rst = fmt.Sprintf( "  <canceled id=\"%s\">\n%s  </canceled>\n", order_id, dbctl.Get_status_xml(db , order_id) )
       ccNode.Rst_type = ok
     } else {
-      ccNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>",order_id,"You don't own this order")
+      ccNode.Rst = fmt.Sprintf("  <error id=\"%s\">%s</error>\n",order_id,"You don't own this order")
       ccNode.Rst_type = ok
     }
   } else {
