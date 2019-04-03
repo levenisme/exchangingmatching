@@ -2,7 +2,7 @@ package xmlparser
 
 import (
 	"encoding/xml"
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"os"
 	"bytes"

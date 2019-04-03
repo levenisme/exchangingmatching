@@ -445,9 +445,9 @@ func HandleConnection(conn net.Conn){
   response := HandleXML(&node)
   conn.Write([]byte( strconv.Itoa(len(response))))
   conn.Write([]byte("\n"))
-  conn.Write([]byte(response)])
+  conn.Write([]byte(response))
   fmt.Println("goroutine end")
-  
+
 }
 
 func main() {
