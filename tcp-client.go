@@ -27,5 +27,7 @@ func SendFileToServer (fileAddr string) {
 }
 
 func main() {
+
+    SendFileToServer("create.xml")
     SendFileToServer("transaction.xml")
 }

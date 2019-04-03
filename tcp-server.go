@@ -82,39 +82,40 @@ func IsBuy(str string) bool {
 
 
 func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
-  ok, ans := xmlparser.VerifyActNode(item)
+  ok, ans := xmlparser.VerifyOrderNode(odNode)
   if ok == xmlparser.VALID_NODE {
-    
+
     amount := odNode.AtrMap["amount"]
-    amount_v := math.Abs(strconv.ParseFloat(amount, 64)) // positive
+    amt_temp, _ := strconv.ParseFloat(amount, 64)
+    amount_v := math.Abs(amt_temp) // positive
 
     sym := odNode.AtrMap["sym"]
 
     limit := odNode.AtrMap["limit"]
-    limit_v := strconv.ParseFloat(limit, 64)
-    
+    limit_v, _ := strconv.ParseFloat(limit, 64)
+
     position := dbctl.Get_position(db, account_id, sym)
-    position_v := strconv.ParseFloat(position, 64)
+    position_v, _ := strconv.ParseFloat(position, 64)
 
     is_buy := IsBuy(amount)
     if(is_buy) {
       balance := dbctl.Get_balance(db, account_id)
-      balance_v := strconv.ParseFloat(balance, 64)
+      balance_v, _ := strconv.ParseFloat(balance, 64)
       if balance_v - limit_v * amount_v <= - 0.005 {
-        odNode.Rst = fmt.Sprintf("<error sym=\"%s\" amount=\"%s\" limit=\"%s\">Insufficient balance</error>", sym, amount,limit)
+        odNode.Rst = fmt.Sprintf("<error sym=\"%s\" amount=\"%s\" limit=\"%s\">Insufficient balance</error>\n", sym, amount,limit)
         return
       } else {
         dbctl.Add_num_balance_account_info(db, account_id, strconv.FormatFloat(- limit_v * amount_v, 'f', 2, 64 ))
       }
     } else {
       if position_v - amount_v <= -0.005 {
-        odNode.Rst = fmt.Sprintf("<error sym=\"%s\" amount=\"%s\" limit=\"%s\">Insufficient position of this sym</error>", sym, amount,limit)
+        odNode.Rst = fmt.Sprintf("<error sym=\"%s\" amount=\"%s\" limit=\"%s\">Insufficient position of this sym</error>\n", sym, amount,limit)
         return
       } else {
         dbctl.Add_num_number_acttosym(db, account_id, sym, amount)
       }
     }
-    
+
     l := dbctl.Get_compare_info(db, sym, limit, is_buy )
     act_l := list.New()
     var income float64
@@ -124,10 +125,11 @@ func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
       target_tsct_id := line[0]
       target_num := line[1]
       target_price := line[2]
-      target_account_id := line[3]  
+      target_account_id := line[3]
 
-      target_num_v = math.Abs(strconv.ParseFloat(target_num, 64)) // positive
-      target_price_v = strconv.ParseFloat(target_price)
+      target_num_temp, _ := strconv.ParseFloat(target_num, 64)
+      target_num_v := math.Abs(target_num_temp) // positive
+      target_price_v, _ := strconv.ParseFloat(target_price, 64)
       var diff float64
       if(amount_v > target_num_v) {
         diff = target_num_v
@@ -147,14 +149,14 @@ func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
           income += math.Abs(target_price_v - limit_v) * diff
         }
         dbctl.Add_num_balance_account_info(db, target_account_id, strconv.FormatFloat(diff * target_price_v, 'f', 2, 64 ))
-        dbctl.Add_num_open_order_info(db, target_tsct_id, diff) // update 对方的order open（使用 -target_num_v）
+        dbctl.Add_num_open_order_info(db, target_tsct_id, strconv.FormatFloat(diff, 'f', 2, 64 )) // update 对方的order open（使用 -target_num_v）
         //dbctl.Update_open(db, strconv.FormatFloat(-target_num_v, 'f', 2, 64 ) , target_tsct_id)
       } else {
         target_act_share_insert = strconv.FormatFloat(diff, 'f', 2, 64 )
         cur_act_share_insert = strconv.FormatFloat(0-diff, 'f', 2, 64 )
         income += diff * target_price_v
-        dbctl.Add_num_number_acttosym(db, target_account_id, sym, diff)
-        dbctl.Add_num_open_order_info(db, target_tsct_id, "-"+diff) // update 对方的order open 使用 target_num_v
+        dbctl.Add_num_number_acttosym(db, target_account_id, sym, strconv.FormatFloat(diff, 'f', 2, 64 ))
+        dbctl.Add_num_open_order_info(db, target_tsct_id, "-"+strconv.FormatFloat(diff, 'f', 2, 64 )  ) // update 对方的order open 使用 target_num_v
       }
       // insert target into activity table, update target balance in account_info, update balance
       dbctl.Insert_activity_info(db, target_tsct_id, target_price, target_act_share_insert)
@@ -162,22 +164,25 @@ func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
     }
     var open string
     if(is_buy) {
-      open =strconv.FormatFloat(amount_v, 'f', 2, 64 ) 
+      open =strconv.FormatFloat(amount_v, 'f', 2, 64 )
     } else {
-      open =strconv.FormatFloat(-amount_v, 'f', 2, 64 ) 
+      open =strconv.FormatFloat(-amount_v, 'f', 2, 64 )
     }
     cur_order_id := dbctl.Insert_order_info(db, sym, account_id, open , amount, limit)
     // 双向更新之二（for）
     //
     for e := act_l.Front(); e != nil && math.Abs(amount_v) >= 0.005 ; e = e.Next() {
       line := e.Value.([]string)
-      dbctl.Insert_activity_info(db, strconv.Itoa(cur_order_id), line[0], line[1] )
-    } 
+      dbctl.Insert_activity_info(db, strconv.FormatInt(cur_order_id, 64), line[0], line[1] )
+    }
     dbctl.Add_num_balance_account_info(db, account_id, strconv.FormatFloat(income, 'f', 2, 64 ))
-    odNode.Rst = fmt.Sprintf("<opened sym=\"%s\" amount=\"%s\" limit=\"%s\"/ id=\"%d\">", sym, amount,limit,cur_order_id)
+    odNode.Rst = fmt.Sprintf("<opened sym=\"%s\" amount=\"%s\" limit=\"%s\" id=\"%d\">\n", sym, amount,limit,cur_order_id)
+  } else {
+    odNode.Rst_type = ok
+    odNode.Rst = ans
   }
-  
-  
+
+
 }
 
 func HandleAccountNode (item *xmlparser.Node, response *bytes.Buffer) {
@@ -242,23 +247,23 @@ func HandleSymAccountNode (item *xmlparser.Node, sym string, response *bytes.Buf
 }
 
 // master goroutine wait for children go routine
-func within(wg *sync.WaitGroup, f func(*xmlparser.Node), node *xmlparser.Node, account_id string) {
+func within(wg *sync.WaitGroup, f func(*xmlparser.Node, string), node *xmlparser.Node, account_id string) {
   wg.Add(1)
   go func() {
       defer wg.Done()
-      
+
       f(node, account_id)
   }()
 }
 
 
 
-func HandleQueryNode(qrNode *xmlparser.Node) {
+func HandleQueryNode(qrNode *xmlparser.Node, account_id string) {
   //fmt.Println("qqqqqqqqqqquery")
   qrNode.Rst = "I am query \n"
 }
 
-func HandleCancelNode(ccNode *xmlparser.Node) {
+func HandleCancelNode(ccNode *xmlparser.Node, account_id string) {
   //fmt.Println("cccccccccccancel")
   ccNode.Rst = "I am cancel \n"
 }
@@ -280,7 +285,7 @@ func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
     return "<results>\n  <error>" + nodeAns + "</error>\n</results>"
   }
   account_id := tsctNode.AtrMap["id"]
-  act_ok, _ = dbctl.Verify_account(db, account_id)
+  act_ok, _ := dbctl.Verify_account(db, account_id)
   if(act_ok == dbctl.INSERT) {
     return "<results>\n  <error> This account doesn't exist in the DB </error>\n</results>"
   }
@@ -331,6 +336,7 @@ func HandleCreateNode(crtNode *xmlparser.Node) ( string){
       crtNode.Nodes[i].Rst_type = xmlparser.ERROR_NODE
     }
   }
+  response.WriteString("</results>")
   return response.String()
 }
 

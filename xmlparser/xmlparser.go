@@ -134,7 +134,8 @@ func IsValidDecimalNumber(str string) bool {
 }
 
 func VerifyOrderNode(odNode *Node) (int, string){
-	ok, ans := VerifyNode(odNode, &OdFormat)
+	return VerifyNode(odNode, &OdFormat)
+
 }
 
 func VerifyActNode (actNode *Node) (int, string) {

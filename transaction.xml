@@ -1,5 +1,5 @@
-<transactions id="111"> #contains 1 or more of the below children
- <order sym="SYM" amount="111" limit="222"/>
- <query id="7"/>
+<transactions id="1"> #contains 1 or more of the below children
+ <order sym="monster" amount="10" limit="30"/>
+ <query id="5"/>
  <cancel id="7"/>
 </transactions>
