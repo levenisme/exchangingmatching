@@ -52,7 +52,7 @@ func HandleXML (node *xmlparser.Node) (string) {
 	default :
 		ans = "not known"
 	}
-	fmt.Println(ans)
+	//fmt.Println(ans)
 	return ans
 }
 
@@ -148,6 +148,7 @@ func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
         if(math.Abs(target_price_v - limit_v) >= 0.005) {
           income += math.Abs(target_price_v - limit_v) * diff
         }
+        dbctl.Add_num_number_acttosym(db, account_id, sym, strconv.FormatFloat(diff, 'f', 2, 64 ) )
         dbctl.Add_num_balance_account_info(db, target_account_id, strconv.FormatFloat(diff * target_price_v, 'f', 2, 64 ))
         dbctl.Add_num_open_order_info(db, target_tsct_id, strconv.FormatFloat(diff, 'f', 2, 64 )) // update 对方的order open（使用 -target_num_v）
         //dbctl.Update_open(db, strconv.FormatFloat(-target_num_v, 'f', 2, 64 ) , target_tsct_id)
@@ -171,7 +172,7 @@ func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
     cur_order_id := dbctl.Insert_order_info(db, sym, account_id, open , amount, limit)
     // 双向更新之二（for）
     //
-    for e := act_l.Front(); e != nil && math.Abs(amount_v) >= 0.005 ; e = e.Next() {
+    for e := act_l.Front(); e != nil  ; e = e.Next() {
       line := e.Value.([]string)
       dbctl.Insert_activity_info(db, strconv.FormatInt(cur_order_id, 64), line[0], line[1] )
     }
@@ -441,7 +442,10 @@ func HandleConnection(conn net.Conn){
   }
   var node xmlparser.Node
   err = xmlparser.GetXmlNode(contentBuf, &node)
-  HandleXML(&node)
+  response := HandleXML(&node)
+  conn.Write([]byte( strconv.Itoa(len(response))))
+  conn.Write([]byte("\n"))
+  conn.Write([]byte(response)])
   fmt.Println("goroutine end")
   
 }

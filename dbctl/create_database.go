@@ -304,7 +304,7 @@ func Create_table(db *sql.DB) {
 	activity := ""
 	activity += "CREATE TABLE activity_info("
 	activity += "activity_id serial primary key,"
-	activity += "shares int,"
+	activity += "shares DECIMAL(32,2),"
 	activity += "order_id int,"
 	activity += "price DECIMAL(32,2),"
 	activity += "time bigint);"
