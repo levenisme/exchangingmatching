@@ -228,7 +228,8 @@ func HandleSymAccountNode (item *xmlparser.Node, sym string, response *bytes.Buf
       }
     } else if idans == dbctl.UPDATE {
       //sa_ist_err :=
-      dbctl.Update_num_in_account_sym(db, num, id, sym)
+      dbctl.Add_num_number_acttosym(db, id, sym, num)
+      
       //if sa_ist_err != nil {
         sa_ok = xmlparser.VALID_NODE
         sa_ans = ""
