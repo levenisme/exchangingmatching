@@ -172,9 +172,9 @@ func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
     cur_order_id := dbctl.Insert_order_info(db, sym, account_id, open , amount, limit)
     // 双向更新之二（for）
     //
-    for e := act_l.Front(); e != nil  ; e = e.Next() {
-      line := e.Value.([]string)
-      dbctl.Insert_activity_info(db, strconv.FormatInt(cur_order_id, 64), line[0], line[1] )
+    for e1 := act_l.Front(); e1 != nil  ; e1 = e1.Next() {
+      line := e1.Value.([]string)
+      dbctl.Insert_activity_info(db, strconv.FormatInt(cur_order_id, 10), line[0], line[1] )
     }
     dbctl.Add_num_balance_account_info(db, account_id, strconv.FormatFloat(income, 'f', 2, 64 ))
     odNode.Rst = fmt.Sprintf("  <opened sym=\"%s\" amount=\"%s\" limit=\"%s\" id=\"%d\">\n", sym, amount,limit,cur_order_id)
