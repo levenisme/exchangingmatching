@@ -283,7 +283,7 @@ func HandleCancelNode(ccNode *xmlparser.Node, account_id string) {
       open := dbctl.Get_open_or_caceltime(db, order_id, "open")
       sym := dbctl.Get_open_or_caceltime(db, order_id, "symbol_id")
       type_info := dbctl.Get_open_or_caceltime(db, order_id, "type")
-      if type_info_v , _ := strconv.Atoi(type_info); type_info_v == CANCELLED {
+      if type_info_v , _ := strconv.Atoi(type_info); type_info_v == dbctl.CANCELLED {
         ccNode.Rst = fmt.Sprintf("  <error id=\"%s\">%s</error>\n",order_id,"This order has been canceled")
         ccNode.Rst_type = ok
         return
