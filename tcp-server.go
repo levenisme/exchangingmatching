@@ -263,11 +263,10 @@ func HandleQueryNode(qrNode *xmlparser.Node, account_id string) {
   if ok == xmlparser.VALID_NODE {
     order_id, _ := qrNode.AtrMap["id"]
     if(dbctl.Authorize_account_order(account_id, order_id)) {
-      res := dbctl.Get_status_xml(db , order_id)
-      qrNode.Rst = res
+      qrNode.Rst = fmt.Sprintf( "  <status id=\"%s\">/n%s  </status>\n", order_id, dbctl.Get_status_xml(db , order_id) )
       qrNode.Rst_type = ok
     } else {
-      qrNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>",order_id,"You don't own this order")
+      qrNode.Rst = fmt.Sprintf("  <error id=\"%s\">%s</error>\n",order_id,"You don't own this order")
       qrNode.Rst_type = ok
     }
   } else {
@@ -296,10 +295,10 @@ func HandleCancelNode(ccNode *xmlparser.Node, account_id string) {
           dbctl.Add_num_number_acttosym(db, sym , account_id, open_abs)
         }
       }
-      qrNode.Rst = dbctl.Get_status_xml(db , order_id)
+      qrNode.Rst = fmt.Sprintf( "  <canceled id=\"%s\">/n%s  </canceled>\n", order_id, dbctl.Get_status_xml(db , order_id) )
       qrNode.Rst_type = ok
     } else {
-      qrNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>",order_id,"You don't own this order")
+      qrNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>\n",order_id,"You don't own this order")
       qrNode.Rst_type = ok
     }
   } else {
@@ -312,7 +311,16 @@ func CollectResponse( node *xmlparser.Node, response *bytes.Buffer) {
   if node == nil {
     return
   }
-  response.WriteString (node.Rst)
+  if node.Rst_type == VALID_NODE {
+    response.WriteString (node.Rst)
+  } else {
+    atrInfo := ""
+    for k,v := range node.AtrMap {
+      atrInfo += k + "=\"" + v +"\" "
+    }
+    response.WriteString(fmt.Sprintf("<error %s>%s</error>\n", atrInfo, node.Rst))
+  }
+  
 }
 
 func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
@@ -322,12 +330,12 @@ func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
   nodeOK, nodeAns := xmlparser.VerifyNode(tsctNode, &xmlparser.TsctFormat)
 
   if nodeOK == xmlparser.ERROR_NODE {
-    return "<results>\n  <error>" + nodeAns + "</error>\n</results>"
+    return "<results>\n  <error>" + nodeAns + "</error>\n</results>\n"
   }
   account_id := tsctNode.AtrMap["id"]
   act_ok, _ := dbctl.Verify_account(db, account_id)
   if(act_ok == dbctl.INSERT) {
-    return "<results>\n  <error> This account doesn't exist in the DB </error>\n</results>"
+    return "<results>\n  <error> This account doesn't exist in the DB </error>\n</results>\n"
   }
   var wg sync.WaitGroup
   //fmt.Println(*tsctNode)
@@ -351,7 +359,7 @@ func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
   for i := 0; i < len(tsctNode.Nodes); i++  {
     CollectResponse( &tsctNode.Nodes[i], &response)
   }
-  response.WriteString("</results>")
+  response.WriteString("</results>\n")
   return response.String()
 }
 
@@ -376,7 +384,7 @@ func HandleCreateNode(crtNode *xmlparser.Node) ( string){
       crtNode.Nodes[i].Rst_type = xmlparser.ERROR_NODE
     }
   }
-  response.WriteString("</results>")
+  response.WriteString("</results>\n")
   return response.String()
 }
 

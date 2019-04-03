@@ -9,7 +9,7 @@ import(
 	"container/list"
 	_ "github.com/lib/pq"
 	"strings"
-	//"math"
+	"math"
 )
 
 const(
@@ -255,49 +255,37 @@ func Get_price(db *sql.DB, order_id string) string {
 	return price
 }
 
-//if query, return xml of status
 func Get_status_xml(db *sql.DB, order_id string) string{
-	status := "<status id = "
-	status = status + order_id + ">\n"
-
 	order_type := Get_type(db, order_id)
-	if(order_type == NOT_EXIST){
-		status = status + "<error trans_id = " + order_id + " not exists>\n "
-		return status
-	}
 	open_shares := Get_open_or_caceltime(db, order_id,"open")
-	fmt.Println("open_shares")
-	fmt.Println(open_shares)
-	open_f,_ := strconv.ParseFloat(open_shares, 64)
-	//check the type of the order to get correct response
-	if (order_type == CANCELLED) {
-		status = status + "<canceled shares = "	+ open_shares
-		canceltime := Get_open_or_caceltime(db, order_id, "time")
-		status = status + " time = " + canceltime + ">\n"
-	}
+	open_shares_v,_ := strconv.ParseFloat(open_shares, 64)
 
-	if(order_type == EXECUTING && open_f != 0){
-		status = status + "<open shares = " + open_shares + ">\n"
-	}
-
-	//response with the executed shares 
 	query := "select shares, price, activity_info.time from activity_info,order_info where (order_info.order_id = activity_info.order_id) and  (order_info.order_id = '"
 	query += order_id
 	query += "');"
-	fmt.Println(query)
-	rows,err := db.Query(query)
-	CheckErr(err)
+	rows,_ := db.Query(query)
+	defer rows.Close()
+	var result string
+
+	if(math.Abs(open_shares_v) >= 0.005) {
+		if(order_type == CANCELLED) {
+			time := Get_open_or_caceltime(db, order_id,"time")
+			result += fmt.Sprintf("    <canceled shares=\"%s\" time=\"%s\"/>\n", open_shares, time)
+		} else {
+			result += fmt.Sprintf("    <open shares=\"%s\"/>\n", open_shares)
+		}
+	}
 	for rows.Next(){
-		status += "<executed shares = "
 		var exe_shares,exe_price,exe_time string
 		rows.Columns()
-		err = rows.Scan(&exe_shares, &exe_price, &exe_time)
-		CheckErr(err)
-		status = status + exe_shares + " price = " + exe_price + " time = " + exe_time + ">\n"
+		_ = rows.Scan(&exe_shares, &exe_price, &exe_time)
+		//CheckErr(err)
+		result += fmt.Sprintf("    <executed shares=\"%s\" price=\"%s\" time=\"%s\"/>\n", exe_shares, exe_price, exe_time)
 	}
-	defer rows.Close()
-	return status
+	return result
+
 }
+
 
 func Create_table(db *sql.DB) {
 	
