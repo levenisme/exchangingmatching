@@ -295,7 +295,7 @@ func HandleCancelNode(ccNode *xmlparser.Node, account_id string) {
           dbctl.Add_num_number_acttosym(db, sym , account_id, open_abs)
         }
       }
-      ccNode.Rst = dbctl.Get_status_xml(db , order_id)
+      ccNode.Rst = fmt.Sprintf( "  <canceled id=\"%s\">\n%s  </canceled>\n", order_id, dbctl.Get_status_xml(db , order_id) )
       ccNode.Rst_type = ok
     } else {
       ccNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>",order_id,"You don't own this order")
