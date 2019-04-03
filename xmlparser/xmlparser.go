@@ -32,6 +32,8 @@ const (
 	FMT_NOT_REC = 0
 	FMT_DECIMAL = 1
 	FMT_NUMBER = 2
+	FMT_NEG_DECI = 3
+	FMT_POS_DECI = 4
 
 )
 
@@ -43,7 +45,7 @@ type RcqFormat struct{
 	Child []string
 }
 
-var ActFormat = RcqFormat{ "account", 1, []string{"id", "balance"}, []int{FMT_NUMBER, FMT_DECIMAL}, []string{} , }
+var ActFormat = RcqFormat{ "account", 1, []string{"id", "balance"}, []int{FMT_NUMBER, FMT_POS_DECI}, []string{} , }
 
 var SymActFormat = RcqFormat { "account" , 1, []string{"id"}, []int{FMT_NUMBER}, []string{} }
 
@@ -53,7 +55,7 @@ var CrtFormat = RcqFormat {"create", 3, []string{}, []int{}, []string{"account",
 
 var TsctFormat = RcqFormat{"transactions", 2, []string{"id"}, []int{FMT_NUMBER}, []string{"order", "query", "cancel"}  }
 
-var OdFormat = RcqFormat { "order", 1, []string{"sym", "amount", "limit"}, []int {FMT_NOT_REC, FMT_DECIMAL, FMT_DECIMAL}, []string{}}
+var OdFormat = RcqFormat { "order", 1, []string{"sym", "amount", "limit"}, []int {FMT_NOT_REC, FMT_DECIMAL, FMT_POS_DECI}, []string{}}
 
 var QrFormat = RcqFormat {"query", 1, []string{}, []int{}, []string{}}
 
@@ -101,7 +103,7 @@ func IsValidNumber(str string) bool {
 	return true
 }
 
-func IsValidDecimalNumber (str string) bool {
+func IsValidPositiveDecimal (str string) bool {
 	if len(str) == 0 {
 		return false
 	}
@@ -113,12 +115,27 @@ func IsValidDecimalNumber (str string) bool {
 			return false
 		}
 	}
-
-	//return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= dbctl.DECIMAL_LEN)
 	return str[0] != '.' && str[len(str)-1] != '.' && (cnt <= 1 && len(str) - cnt <= 32)
 }
 
+func IsValidNegativeDecimal(str string) bool {
+	if len(str) == 0 {
+		return false
+	}
+	if(str[0] != '-') {
+		return false
+	}
+	str1 := str[1:]
+	return IsValidPositiveDecimal(str1)
+}
 
+func IsValidDecimalNumber(str string) bool {
+	return IsValidNegativeDecimal(str) || IsValidPositiveDecimal(str)
+}
+
+func VerifyOrderNode(odNode *Node) (int, string){
+	ok, ans := VerifyNode(odNode, &OdFormat)
+}
 
 func VerifyActNode (actNode *Node) (int, string) {
 	return VerifyNode(actNode, &ActFormat)
@@ -127,7 +144,7 @@ func VerifyActNode (actNode *Node) (int, string) {
 func VerifySymActNode (symActNode *Node) (int, string) {
     ok, ans := VerifyNode(symActNode, &SymActFormat)
 	if ok == VALID_NODE {
-		if !IsValidDecimalNumber(strings.Trim(string(symActNode.Content), " ")) {
+		if !IsValidPositiveDecimal(strings.Trim(string(symActNode.Content), " ")) {
 			return ERROR_NODE, "Error: account has invalid decimal position"
 		}
 	}
@@ -175,13 +192,17 @@ func VerifyNode (node *Node, rcq *RcqFormat) (int, string) {
 			}
             formt, ok := fmtMap[attr.Name.Local]
 			switch formt {
-			case FMT_DECIMAL:
-				if !IsValidDecimalNumber(attr.Value) {
-					return ERROR_NODE, "Error: Invalid attribute format"
+			case FMT_POS_DECI:
+				if !IsValidPositiveDecimal(attr.Value) {
+					return ERROR_NODE, "Error: Invalid attribute format (positive decimal)"
 				}
 			case FMT_NUMBER:
 				if !IsValidNumber (attr.Value) {
-					return ERROR_NODE, "Error: Invalid attribute format"
+					return ERROR_NODE, "Error: Invalid attribute format (10 based ditit number)"
+				}
+			case FMT_DECIMAL:
+				if !IsValidDecimalNumber(attr.Value) {
+					return ERROR_NODE, "Error: Invalid attribute format (decimal)"
 				}
 			default:
 

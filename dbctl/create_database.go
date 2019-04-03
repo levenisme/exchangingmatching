@@ -4,14 +4,13 @@ import(
 	"database/sql"
 	"fmt"
 	"strconv"
-	"sync"
 	//"log"
 	"time"
 	"container/list"
 	_ "github.com/lib/pq"
+	"strings"
+	//"math"
 )
-
-var lock sync.Mutex
 
 const(
 	host 	 = "localhost"
@@ -33,11 +32,61 @@ const(
 	NOT_EXIST = -1
 )
 
+//edit num in order_info
+func Add_num_open_order_info(db *sql.DB, order_id string, num string) {
+	open := Get_open_or_caceltime(db, order_id, "open")
+	to_add,_ := strconv.ParseFloat(open, 64)
+	fmt.Print("to_add: ")
+	fmt.Println(to_add)
+	to_num,_ := strconv.ParseFloat(num, 64)
+	to_add = to_add + to_num
+	fmt.Print("to_add: ")
+	fmt.Println(to_add)
+	to_up := strconv.FormatFloat(to_add, 'f', 2, 64 )
+	fmt.Print("to_up: ")
+	fmt.Println(to_up)
+	Update_open(db,to_up,order_id)	
+}
+
+//add number in acc_to_sym
+func Add_num_number_acttosym(db *sql.DB, account_id string, symbol_id string, num string) {
+	number,id := Get_number_acc_to_sym(db, account_id, symbol_id)
+	fmt.Println("id")
+	fmt.Println(id)
+	to_add,_ := strconv.ParseFloat(number, 64)
+	fmt.Print("to_add: ")
+	to_num,_ := strconv.ParseFloat(num, 64)
+	to_add = to_add + to_num
+	fmt.Print("to_add: ")
+	fmt.Println(to_add)
+	to_up := strconv.FormatFloat(to_add, 'f', 2, 64 )
+	fmt.Print("to_up: ")
+	fmt.Println(to_up)
+	Update_num_in_account_sym_in(db, id, to_up)
+
+}
+
+//add num to balance in account info
+func Add_num_balance_account_info(db *sql.DB, account_id string, num string) {
+	balance := Get_balance(db, account_id)
+	to_add,_ := strconv.ParseFloat(balance, 64)
+	fmt.Print("to_add: ")
+	fmt.Println(to_add)
+	to_num,_ := strconv.ParseFloat(num, 64)
+	to_add = to_add + to_num
+	fmt.Print("to_add: ")
+	fmt.Println(to_add)
+	to_up := strconv.FormatFloat(to_add, 'f', 2, 64 )
+	fmt.Print("to_up: ")
+	fmt.Println(to_up)
+	Update_balance(db, to_up, account_id)
+
+}
 //get transaction_id(order_id), num, price from order_info
 func Get_compare_info(db *sql.DB, sym string, limit string, is_buy bool) *list.List{
-	query_buy := fmt.Sprintf("select order_id, open, limit_price from order_info where (symbol_id ='%s') and (type = 2 ) and (limit_price <= %s) and (open < 0 ) order by limit_price ASC, order_id ASC;", sym, limit)
+	query_buy := fmt.Sprintf("select order_id, open, limit_price, account_id from order_info where (symbol_id ='%s') and (type = 2 ) and (limit_price <= %s) and (open < 0 ) order by limit_price ASC, order_id ASC;", sym, limit)
 
-	query_sell := fmt.Sprintf("select order_id, open, limit_price from order_info where (symbol_id ='%s') and (type = 2 ) and (limit_price >= %s) and (open > 0 ) order by limit_price DESC, order_id ASC;", sym, limit)
+	query_sell := fmt.Sprintf("select order_id, open, limit_price, account_id from order_info where (symbol_id ='%s') and (type = 2 ) and (limit_price >= %s) and (open > 0 ) order by limit_price DESC, order_id ASC;", sym, limit)
 	
 	var query string
 
@@ -52,21 +101,17 @@ func Get_compare_info(db *sql.DB, sym string, limit string, is_buy bool) *list.L
 
 	l := list.New()
 	for rows.Next(){
-		var order_id int64 
-		var open float64
-		var limit_price float64
+		var order_id, open,limit_price, account_id string
 		rows.Columns()
-		err = rows.Scan(&order_id, &open, &limit_price)
+		err = rows.Scan(&order_id, &open, &limit_price, &account_id)
 		CheckErr(err)
-		order_tmp := strconv.FormatInt(order_id, 10)
-		open_tmp := fmt.Sprintf("%f", open)
-		limit_tmp := fmt.Sprintf("%f", limit_price)
-		l.PushBack([]string{order_tmp, open_tmp, limit_tmp})
+		l.PushBack([]string{order_id, open, limit_price, account_id})
 	}
 
 	for e:= l.Front(); e != nil; e = e.Next(){
 		fmt.Println(e.Value)
 	}
+	defer rows.Close()
 	return l
 }
 
@@ -76,6 +121,15 @@ func Update_num_in_account_sym(db *sql.DB, num string, account_id string, symbol
 	update = update + num + " where (account_id = '"
 	update = update + account_id + "') and (symbol_id ='"
 	update = update + symbol_id + "');"
+	fmt.Println(update)
+	db.Exec(update)
+}
+
+//update number in account_to_sym, need to change name, use internal 
+func Update_num_in_account_sym_in(db *sql.DB, id string, num string) {
+	update := "update account_to_symbol set number = "
+	update = update + num + " where (account_symbol_id = "
+	update = update + id + "); "
 	fmt.Println(update)
 	db.Exec(update)
 }
@@ -108,10 +162,17 @@ func Update_type_and_time(db *sql.DB, order_id string) {
 	db.Exec(update)
 }
 
-
+//check if account_id is 
+func Authorize_account_order (db *sql.DB, account_id string, order_id string) bool {
+	query := fmt.Sprintf("select account_id from order_info where order_id =%s;", order_id)
+	row := db.QueryRow(query)
+	var check_a string
+	row.Scan(&check_a)
+	return strings.Compare(check_a,account_id)==0
+}
 //get the num of the sym that an acount have
 //if there is no num, it will return "" 
-func Get_position(db *sql.DB, account_id string, sym string) (string) {
+func Get_position(db *sql.DB, account_id string, sym string) string {
 	pos := "select number from account_to_symbol where (account_id = '"
 	pos += account_id
 	pos += "') and (symbol_id = '"
@@ -126,7 +187,7 @@ func Get_position(db *sql.DB, account_id string, sym string) (string) {
 }
 
 //get balance of an account 
-func Get_balance(db *sql.DB, account_id string)(string){
+func Get_balance(db *sql.DB, account_id string) string {
 	query := "select balance from account_info where account_id = '"
 	query += account_id
 	query += "'; "
@@ -139,18 +200,29 @@ func Get_balance(db *sql.DB, account_id string)(string){
 }
 
 //get open shares or cancel time from order_info table, differentiated by input
-func Get_open_or_caceltime(db *sql.DB, order_id string, check string) int64 {
+func Get_open_or_caceltime(db *sql.DB, order_id string, check string) string {
 	query := "select " + check + " from order_info where order_id = '"
 	query += order_id 
 	query += "'; "
 	fmt.Println(query)
 	row := db.QueryRow(query)
-	var req int64
+	var req string
 	row.Scan(&req)
 	fmt.Println(req)
 	return req
 }
 
+//get number from account_to_symbol
+func Get_number_acc_to_sym(db *sql.DB, account_id string, symbol_id string) (string, string){
+	query := fmt.Sprintf("select account_symbol_id, number from account_to_symbol where (account_id ='%s') and (symbol_id = '%s');", account_id,symbol_id)
+	row := db.QueryRow(query)
+	fmt.Println(query)
+	var number,id string
+	row.Scan(&id,&number)
+	fmt.Println(number)
+	fmt.Println(id)
+	return number,id
+}
 //get type of the order, to check if it is cancelled
 func Get_type(db *sql.DB, order_id string) int {
 	query := "select type from order_info where order_id = '"
@@ -181,15 +253,19 @@ func Get_status_xml(db *sql.DB, order_id string) string{
 		status = status + "<error trans_id = " + order_id + " not exists>\n "
 		return status
 	}
-	open_shares := Get_open_or_caceltime(db, order_id, "open")
+	open_shares := Get_open_or_caceltime(db, order_id,"open")
+	fmt.Println("open_shares")
+	fmt.Println(open_shares)
+	open_f,_ := strconv.ParseFloat(open_shares, 64)
 	//check the type of the order to get correct response
 	if (order_type == CANCELLED) {
-		status = status + "<canceled shares = "	+ strconv.FormatInt(open_shares, 10)
+		status = status + "<canceled shares = "	+ open_shares
 		canceltime := Get_open_or_caceltime(db, order_id, "time")
-		status = status + " time = " + strconv.FormatInt(canceltime,10) + ">\n"
+		status = status + " time = " + canceltime + ">\n"
 	}
-	if(order_type == EXECUTING){
-		status = status + "<open shares = " + strconv.FormatInt(open_shares,10) + ">\n"
+
+	if(order_type == EXECUTING && open_f != 0){
+		status = status + "<open shares = " + open_shares + ">\n"
 	}
 
 	//response with the executed shares 
@@ -201,13 +277,11 @@ func Get_status_xml(db *sql.DB, order_id string) string{
 	CheckErr(err)
 	for rows.Next(){
 		status += "<executed shares = "
-		var exe_shares int64
-		var exe_price float64
-		var exe_time int64 
+		var exe_shares,exe_price,exe_time string
 		rows.Columns()
 		err = rows.Scan(&exe_shares, &exe_price, &exe_time)
 		CheckErr(err)
-		status = status + strconv.FormatInt(exe_shares,10) + " price = " + fmt.Sprintf("%f", exe_price) + " time = " + strconv.FormatInt(exe_time,10) + ">\n"
+		status = status + exe_shares + " price = " + exe_price + " time = " + exe_time + ">\n"
 	}
 	defer rows.Close()
 	return status
@@ -408,14 +482,17 @@ func Insert_activity_info(db *sql.DB, order_id string, price string, shares stri
 	db.Exec(insert)
 }
 
-func Insert_order_info(db *sql.DB, account_id string, sym string, amount string, limit string) int64 {
-	query := "insert into order_info(account_id, open, type, amount) values ("
-	query = query + account_id + ", " + amount + ", " + limit + ", " +amount +"); "
-	rs,err := db.Exec(query)
-	CheckErr(err)
+func Insert_order_info(db *sql.DB, sym string, account_id string, open string, amount string, limit string) int64 {
+	query := "insert into order_info(symbol_id, account_id, open, type, amount, limit_price) values ('"
+	query = query + sym + "', '" + account_id + "', " + open + ", " + strconv.FormatInt(EXECUTING, 10) + ", "+amount +", " + limit + ") returning order_id; "
 	fmt.Println(query)
-	id, err := rs.LastInsertId()
-	return id+1
+	var insert_id int64
+	//row := db.Exec(query)
+	//get_order_id := fmt.Sprintf("select order_id from order_info where (symbol_id ='%s') and (type = 2 ) and (account_id = '%s') and (limit_price = %s) and (open = %s ) ", sym, account_id, limit)
+
+	row := db.QueryRow(query)
+	row.Scan(&insert_id)
+	return insert_id
 }
 
 func Insert_symbol_info(db *sql.DB,sym string) error{
@@ -453,50 +530,39 @@ func Connect_database() (db *sql.DB, errstr error){
 	return db,nil
 }
 
+func BeginTransaction(db *sql.DB) {
+	db.Exec("begin transaction isolation level repeatable read;")
+}
+
+func TransCommit(db *sql.DB) {
+	db.Exec("commit;")
+}
 func main() {
 	//connect to the database
 	
 	db,_ := Connect_database()
 	fmt.Println("successfully connected!")
 	Create_table(db)
-
-	p,_ := Verify_account(db,"12345")
-	fmt.Println(p)
-	p,_ = Verify_account(db,"123")
-	fmt.Println(p)
-	p,_ = Verify_symbol(db,"abcd")
-	fmt.Println(p)
-	p,_ = Verify_symbol_account(db,"abcd","123","1234.0")
-	fmt.Println(p)
-	Insert_accout_info(db,"12345","1000")
-	Insert_accout_info(db,"123","321")
-	Insert_symbol_info(db,"abcd")
-	Insert_account_to_symbol(db, "abcd", "123", "1234.0")
-	p,_ = Verify_account(db,"12345")
-	fmt.Println(p)
-	p,_ = Verify_account(db,"123")
-	fmt.Println(p)
-	p,_ = Verify_symbol(db,"abcd")
-	fmt.Println(p)
-	p,_ = Verify_symbol_account(db,"abcd","123","1234.0")
-	fmt.Println(p)
-	num:= Get_position(db, "123","abcd" )
-	fmt.Println(num)
-	num= Get_position(db, "12345","abcd" )
-	fmt.Println(num)
-	fmt.Println("return id")
-	fmt.Println(Insert_order_info(db, "12345", "abcd", "100000", "2"))
-	fmt.Println(Get_status_xml(db, "2"))
-	fmt.Println(Get_status_xml(db, "1"))
-	Insert_activity_info(db, "1", "100", "100")
-	Update_num_in_account_sym(db, "99999", "123", "abcd")
-	Update_balance(db, "9999999", "12345")
-	Update_open(db, "99999", "1")
-	Update_type_and_time(db, "1")
-
-	db.Exec("insert into order_info (account_id,symbol_id,open,type,amount,limit_price) values (12345,'abcd',10000,2,100,5);")
-	db.Exec("insert into order_info (account_id,symbol_id,open,type,amount,limit_price) values (12345,'abcd',10000,2,100,6);")
-	db.Exec("insert into order_info (account_id,symbol_id,open,type,amount,limit_price) values (12345,'abcd',10000,2,100,7);")
-	db.Exec("insert into order_info (account_id,symbol_id,open,type,amount,limit_price) values (12345,'abcd',10000,2,100,6);")
-	Get_compare_info(db, "abcd", "6", false)
+ 	//Insert_accout_info()
+ 	BeginTransaction(db)
+	Insert_accout_info(db, "111", "1000000")
+	Insert_accout_info(db, "112", "1000000")
+	Insert_accout_info(db, "113", "1000000")
+	Insert_accout_info(db, "114", "1000000")
+	Insert_accout_info(db, "115", "1000000")
+	Insert_symbol_info(db,"ABC")
+	Insert_account_to_symbol(db, "ABC", "111", "100")
+	Insert_account_to_symbol(db, "ABC", "112", "100")
+	Insert_account_to_symbol(db, "ABC", "113", "100")
+	Insert_account_to_symbol(db, "ABC", "114", "100")
+	Insert_account_to_symbol(db, "ABC", "115", "100")
+	order_id := Insert_order_info(db, "ABC", "111", "-500","-500", "125")
+	order_id = Insert_order_info(db, "ABC", "112", "-700","-700", "120")
+	get_order_id := strconv.FormatInt(order_id, 10)
+	Add_num_open_order_info(db, get_order_id, "200")
+	Insert_account_to_symbol(db, "ABC", "111", "50")
+	Add_num_number_acttosym(db, "111", "ABC", "20")
+	Add_num_balance_account_info(db, "111", "-800")
+	TransCommit(db)
+	
 }

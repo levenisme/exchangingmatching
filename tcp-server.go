@@ -13,6 +13,8 @@ import (
  "sync"
  "runtime"
  "bytes"
+ "math"
+ "container/list"
 )
 
 var db *sql.DB
@@ -71,6 +73,111 @@ func HandleSymNode (item *xmlparser.Node, response *bytes.Buffer) {
   item.Rst = ans
   item.Rst_type = ok
 
+}
+
+func IsBuy(str string) bool {
+  return str[0] != '-'
+}
+
+
+
+func HandleOrderNode(odNode *xmlparser.Node, account_id string) {
+  ok, ans := xmlparser.VerifyActNode(item)
+  if ok == xmlparser.VALID_NODE {
+    
+    amount := odNode.AtrMap["amount"]
+    amount_v := math.Abs(strconv.ParseFloat(amount, 64)) // positive
+
+    sym := odNode.AtrMap["sym"]
+
+    limit := odNode.AtrMap["limit"]
+    limit_v := strconv.ParseFloat(limit, 64)
+    
+    position := dbctl.Get_position(db, account_id, sym)
+    position_v := strconv.ParseFloat(position, 64)
+
+    is_buy := IsBuy(amount)
+    if(is_buy) {
+      balance := dbctl.Get_balance(db, account_id)
+      balance_v := strconv.ParseFloat(balance, 64)
+      if balance_v - limit_v * amount_v <= - 0.005 {
+        odNode.Rst = fmt.Sprintf("<error sym=\"%s\" amount=\"%s\" limit=\"%s\">Insufficient balance</error>", sym, amount,limit)
+        return
+      } else {
+        dbctl.Add_num_balance_account_info(db, account_id, strconv.FormatFloat(- limit_v * amount_v, 'f', 2, 64 ))
+      }
+    } else {
+      if position_v - amount_v <= -0.005 {
+        odNode.Rst = fmt.Sprintf("<error sym=\"%s\" amount=\"%s\" limit=\"%s\">Insufficient position of this sym</error>", sym, amount,limit)
+        return
+      } else {
+        dbctl.Add_num_number_acttosym(db, account_id, sym, amount)
+      }
+    }
+    
+    l := dbctl.Get_compare_info(db, sym, limit, is_buy )
+    act_l := list.New()
+    var income float64
+    income = 0
+    for e := l.Front(); e != nil && math.Abs(amount_v) >= 0.005 ; e = e.Next() {
+      line := e.Value.([]string)
+      target_tsct_id := line[0]
+      target_num := line[1]
+      target_price := line[2]
+      target_account_id := line[3]  
+
+      target_num_v = math.Abs(strconv.ParseFloat(target_num, 64)) // positive
+      target_price_v = strconv.ParseFloat(target_price)
+      var diff float64
+      if(amount_v > target_num_v) {
+        diff = target_num_v
+        amount_v -= target_num_v
+        target_num_v = 0
+      } else {
+        diff = amount_v
+        target_num_v -= amount_v
+        amount_v = 0
+      }
+      var target_act_share_insert, cur_act_share_insert string
+
+      if(is_buy) {
+        target_act_share_insert = strconv.FormatFloat(0-diff, 'f', 2, 64 )
+        cur_act_share_insert = strconv.FormatFloat(diff, 'f', 2, 64 )
+        if(math.Abs(target_price_v - limit_v) >= 0.005) {
+          income += math.Abs(target_price_v - limit_v) * diff
+        }
+        dbctl.Add_num_balance_account_info(db, target_account_id, strconv.FormatFloat(diff * target_price_v, 'f', 2, 64 ))
+        dbctl.Add_num_open_order_info(db, target_tsct_id, diff) // update 对方的order open（使用 -target_num_v）
+        //dbctl.Update_open(db, strconv.FormatFloat(-target_num_v, 'f', 2, 64 ) , target_tsct_id)
+      } else {
+        target_act_share_insert = strconv.FormatFloat(diff, 'f', 2, 64 )
+        cur_act_share_insert = strconv.FormatFloat(0-diff, 'f', 2, 64 )
+        income += diff * target_price_v
+        dbctl.Add_num_number_acttosym(db, target_account_id, sym, diff)
+        dbctl.Add_num_open_order_info(db, target_tsct_id, "-"+diff) // update 对方的order open 使用 target_num_v
+      }
+      // insert target into activity table, update target balance in account_info, update balance
+      dbctl.Insert_activity_info(db, target_tsct_id, target_price, target_act_share_insert)
+      act_l.PushBack([]string{ target_price, cur_act_share_insert })
+    }
+    var open string
+    if(is_buy) {
+      open =strconv.FormatFloat(amount_v, 'f', 2, 64 ) 
+    } else {
+      open =strconv.FormatFloat(-amount_v, 'f', 2, 64 ) 
+    }
+    cur_order_id := dbctl.Insert_order_info(db, sym, account_id, open , amount, limit)
+    // 双向更新之二（for）
+    //
+    for e := act_l.Front(); e != nil && math.Abs(amount_v) >= 0.005 ; e = e.Next() {
+      line := e.Value.([]string)
+      dbctl.Insert_activity_info(db, strconv.Itoa(cur_order_id), line[0], line[1] )
+    } 
+    dbctl.Add_num_balance_account_info(db, account_id, strconv.FormatFloat(income, 'f', 2, 64 ))
+    odNode.Rst = fmt.Sprintf("<opened sym=\"%s\" amount=\"%s\" limit=\"%s\"/ id=\"%d\">", sym, amount,limit,cur_order_id)
+  }
+  
+  
 }
 
 func HandleAccountNode (item *xmlparser.Node, response *bytes.Buffer) {
@@ -135,18 +242,16 @@ func HandleSymAccountNode (item *xmlparser.Node, sym string, response *bytes.Buf
 }
 
 // master goroutine wait for children go routine
-func within(wg *sync.WaitGroup, f func(*xmlparser.Node), node *xmlparser.Node) {
+func within(wg *sync.WaitGroup, f func(*xmlparser.Node), node *xmlparser.Node, account_id string) {
   wg.Add(1)
   go func() {
       defer wg.Done()
-      f(node)
+      
+      f(node, account_id)
   }()
 }
 
-func HandleOrderNode(odNode *xmlparser.Node) {
-  //fmt.Println("ooooooooorder")
-  odNode.Rst = "I am order \n"
-}
+
 
 func HandleQueryNode(qrNode *xmlparser.Node) {
   //fmt.Println("qqqqqqqqqqquery")
@@ -170,8 +275,14 @@ func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
     return "Error: nil transaction node"
   }
   nodeOK, nodeAns := xmlparser.VerifyNode(tsctNode, &xmlparser.TsctFormat)
+
   if nodeOK == xmlparser.ERROR_NODE {
-    return nodeAns
+    return "<results>\n  <error>" + nodeAns + "</error>\n</results>"
+  }
+  account_id := tsctNode.AtrMap["id"]
+  act_ok, _ = dbctl.Verify_account(db, account_id)
+  if(act_ok == dbctl.INSERT) {
+    return "<results>\n  <error> This account doesn't exist in the DB </error>\n</results>"
   }
   var wg sync.WaitGroup
   //fmt.Println(*tsctNode)
@@ -179,11 +290,11 @@ func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
   for i:=0 ; i < len(tsctNode.Nodes) ; i++ {
     switch tsctNode.Nodes[i].XMLName.Local {
     case "order":
-      within(&wg, HandleOrderNode, &tsctNode.Nodes[i])
+      within(&wg, HandleOrderNode, &tsctNode.Nodes[i], account_id)
     case "query":
-      within(&wg, HandleQueryNode, &tsctNode.Nodes[i])
+      within(&wg, HandleQueryNode, &tsctNode.Nodes[i], account_id)
     case "cancel":
-      within(&wg, HandleCancelNode, &tsctNode.Nodes[i])
+      within(&wg, HandleCancelNode, &tsctNode.Nodes[i], account_id)
     default:
       tsctNode.Nodes[i].Rst = "unknown node"
       tsctNode.Nodes[i].Rst_type = xmlparser.ERROR_NODE
