@@ -262,14 +262,8 @@ func HandleQueryNode(qrNode *xmlparser.Node, account_id string) {
   ok, ans := xmlparser.VerifyQueryNode(qrNode)
   if ok == xmlparser.VALID_NODE {
     order_id, _ := qrNode.AtrMap["id"]
-<<<<<<< HEAD
-    if(dbctl.Authorize_account_order(account_id, order_id)) {
-      qrNode.Rst = fmt.Sprintf( "  <status id=\"%s\">/n%s  </status>\n", order_id, dbctl.Get_status_xml(db , order_id) )
-=======
     if(dbctl.Authorize_account_order(db, account_id, order_id)) {
-      res := dbctl.Get_status_xml(db , order_id)
-      qrNode.Rst = res
->>>>>>> f16559302ca599e825b630c01ecb05c52dc59591
+      qrNode.Rst = fmt.Sprintf( "  <status id=\"%s\">\n%s  </status>\n", order_id, dbctl.Get_status_xml(db , order_id) )
       qrNode.Rst_type = ok
     } else {
       qrNode.Rst = fmt.Sprintf("  <error id=\"%s\">%s</error>\n",order_id,"You don't own this order")
@@ -301,19 +295,11 @@ func HandleCancelNode(ccNode *xmlparser.Node, account_id string) {
           dbctl.Add_num_number_acttosym(db, sym , account_id, open_abs)
         }
       }
-<<<<<<< HEAD
-      qrNode.Rst = fmt.Sprintf( "  <canceled id=\"%s\">/n%s  </canceled>\n", order_id, dbctl.Get_status_xml(db , order_id) )
-      qrNode.Rst_type = ok
-    } else {
-      qrNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>\n",order_id,"You don't own this order")
-      qrNode.Rst_type = ok
-=======
       ccNode.Rst = dbctl.Get_status_xml(db , order_id)
       ccNode.Rst_type = ok
     } else {
       ccNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>",order_id,"You don't own this order")
       ccNode.Rst_type = ok
->>>>>>> f16559302ca599e825b630c01ecb05c52dc59591
     }
   } else {
     ccNode.Rst = ans
@@ -325,7 +311,7 @@ func CollectResponse( node *xmlparser.Node, response *bytes.Buffer) {
   if node == nil {
     return
   }
-  if node.Rst_type == VALID_NODE {
+  if node.Rst_type == xmlparser.VALID_NODE {
     response.WriteString (node.Rst)
   } else {
     atrInfo := ""
@@ -334,7 +320,7 @@ func CollectResponse( node *xmlparser.Node, response *bytes.Buffer) {
     }
     response.WriteString(fmt.Sprintf("<error %s>%s</error>\n", atrInfo, node.Rst))
   }
-  
+
 }
 
 func HandleTransactionNode(tsctNode *xmlparser.Node) (string) {
