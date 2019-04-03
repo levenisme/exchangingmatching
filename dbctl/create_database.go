@@ -36,32 +36,32 @@ const(
 func Add_num_open_order_info(db *sql.DB, order_id string, num string) {
 	open := Get_open_or_caceltime(db, order_id, "open")
 	to_add,_ := strconv.ParseFloat(open, 64)
-	fmt.Print("to_add: ")
-	fmt.Println(to_add)
+	//fmt.Print("to_add: ")
+	//fmt.Println(to_add)
 	to_num,_ := strconv.ParseFloat(num, 64)
 	to_add = to_add + to_num
-	fmt.Print("to_add: ")
-	fmt.Println(to_add)
+	//fmt.Print("to_add: ")
+	//fmt.Println(to_add)
 	to_up := strconv.FormatFloat(to_add, 'f', 2, 64 )
-	fmt.Print("to_up: ")
-	fmt.Println(to_up)
+	//fmt.Print("to_up: ")
+	//fmt.Println(to_up)
 	Update_open(db,to_up,order_id)	
 }
 
 //add number in acc_to_sym
 func Add_num_number_acttosym(db *sql.DB, account_id string, symbol_id string, num string) {
 	number,id := Get_number_acc_to_sym(db, account_id, symbol_id)
-	fmt.Println("id")
-	fmt.Println(id)
+	//fmt.Println("id")
+	//fmt.Println(id)
 	to_add,_ := strconv.ParseFloat(number, 64)
-	fmt.Print("to_add: ")
+	//fmt.Print("to_add: ")
 	to_num,_ := strconv.ParseFloat(num, 64)
 	to_add = to_add + to_num
-	fmt.Print("to_add: ")
-	fmt.Println(to_add)
+	//fmt.Print("to_add: ")
+	//fmt.Println(to_add)
 	to_up := strconv.FormatFloat(to_add, 'f', 2, 64 )
-	fmt.Print("to_up: ")
-	fmt.Println(to_up)
+	//fmt.Print("to_up: ")
+	//fmt.Println(to_up)
 	Update_num_in_account_sym_in(db, id, to_up)
 
 }
@@ -70,15 +70,15 @@ func Add_num_number_acttosym(db *sql.DB, account_id string, symbol_id string, nu
 func Add_num_balance_account_info(db *sql.DB, account_id string, num string) {
 	balance := Get_balance(db, account_id)
 	to_add,_ := strconv.ParseFloat(balance, 64)
-	fmt.Print("to_add: ")
-	fmt.Println(to_add)
+	//fmt.Print("to_add: ")
+	//fmt.Println(to_add)
 	to_num,_ := strconv.ParseFloat(num, 64)
 	to_add = to_add + to_num
-	fmt.Print("to_add: ")
-	fmt.Println(to_add)
+	//fmt.Print("to_add: ")
+	//fmt.Println(to_add)
 	to_up := strconv.FormatFloat(to_add, 'f', 2, 64 )
-	fmt.Print("to_up: ")
-	fmt.Println(to_up)
+	//fmt.Print("to_up: ")
+	//fmt.Println(to_up)
 	Update_balance(db, to_up, account_id)
 
 }
@@ -96,7 +96,7 @@ func Get_compare_info(db *sql.DB, sym string, limit string, is_buy bool) *list.L
 		query = query_sell
 	}
 
-	fmt.Println(query)
+	//fmt.Println(query)
 	rows,err := db.Query(query)
 
 	l := list.New()
@@ -109,7 +109,7 @@ func Get_compare_info(db *sql.DB, sym string, limit string, is_buy bool) *list.L
 	}
 
 	for e:= l.Front(); e != nil; e = e.Next(){
-		fmt.Println(e.Value)
+		//fmt.Println(e.Value)
 	}
 	defer rows.Close()
 	return l
@@ -121,7 +121,7 @@ func Update_num_in_account_sym(db *sql.DB, num string, account_id string, symbol
 	update = update + num + " where (account_id = '"
 	update = update + account_id + "') and (symbol_id ='"
 	update = update + symbol_id + "');"
-	fmt.Println(update)
+	//fmt.Println(update)
 	db.Exec(update)
 }
 
@@ -130,7 +130,7 @@ func Update_num_in_account_sym_in(db *sql.DB, id string, num string) {
 	update := "update account_to_symbol set number = "
 	update = update + num + " where (account_symbol_id = "
 	update = update + id + "); "
-	fmt.Println(update)
+	//fmt.Println(update)
 	db.Exec(update)
 }
 
@@ -140,7 +140,7 @@ func Update_balance(db *sql.DB, balance string, account_id string) {
 	update := "update account_info set balance = "
 	update = update + balance + " where (account_id = '"
 	update = update + account_id + "');"
-	fmt.Println(update)
+	//fmt.Println(update)
 	db.Exec(update)
 }
 
@@ -149,7 +149,7 @@ func Update_open(db *sql.DB, open string, order_id string) {
 	update := "update order_info set open = "
 	update = update + open + " where (order_id = "
 	update = update + order_id + ");"
-	fmt.Println(update)
+	//fmt.Println(update)
 	db.Exec(update)
 }
 
@@ -158,7 +158,7 @@ func Update_type_and_time(db *sql.DB, order_id string) {
 	time_now := time.Now().Unix()
 	update := "update order_info set type = "
 	update = update + strconv.FormatInt(CANCELLED, 10) + ", time = " + strconv.FormatInt(time_now, 10) + " where order_id = " + order_id +"; "
-	fmt.Println(update)
+	//fmt.Println(update)
 	db.Exec(update)
 }
 
@@ -178,11 +178,11 @@ func Get_position(db *sql.DB, account_id string, sym string) string {
 	pos += "') and (symbol_id = '"
 	pos += sym
 	pos += "') ;"
-	fmt.Println(pos)
+	//fmt.Println(pos)
 	row:= db.QueryRow(pos)
 	var num string
 	row.Scan(&num)
-	fmt.Println(num)
+	//fmt.Println(num)
 	return num
 }
 
@@ -191,11 +191,11 @@ func Get_balance(db *sql.DB, account_id string) string {
 	query := "select balance from account_info where account_id = '"
 	query += account_id
 	query += "'; "
-	fmt.Println(query)
+	//fmt.Println(query)
 	row := db.QueryRow(query)
 	var balance string
 	row.Scan(&balance)
-	fmt.Println(balance)
+	//fmt.Println(balance)
 	return balance
 }
 
@@ -204,11 +204,11 @@ func Get_open_or_caceltime(db *sql.DB, order_id string, check string) string {
 	query := "select " + check + " from order_info where order_id = '"
 	query += order_id 
 	query += "'; "
-	fmt.Println(query)
+	//fmt.Println(query)
 	row := db.QueryRow(query)
 	var req string
 	row.Scan(&req)
-	fmt.Println(req)
+	//fmt.Println(req)
 	return req
 }
 
@@ -216,23 +216,23 @@ func Get_open_or_caceltime(db *sql.DB, order_id string, check string) string {
 func Get_number_acc_to_sym(db *sql.DB, account_id string, symbol_id string) (string, string){
 	query := fmt.Sprintf("select account_symbol_id, number from account_to_symbol where (account_id ='%s') and (symbol_id = '%s');", account_id,symbol_id)
 	row := db.QueryRow(query)
-	fmt.Println(query)
+	//fmt.Println(query)
 	var number,id string
 	row.Scan(&id,&number)
-	fmt.Println(number)
-	fmt.Println(id)
+	//fmt.Println(number)
+	//fmt.Println(id)
 	return number,id
 }
 //get type of the order, to check if it is cancelled
 func Get_type(db *sql.DB, order_id string) int {
 	query := "select type from order_info where order_id = '"
 	query = query + order_id + "'; "
-	fmt.Println(query)
+	//fmt.Println(query)
 	row := db.QueryRow(query)
 	var order_type int
 	row.Scan(&order_type)
-	fmt.Println("type")
-	fmt.Println(order_type)
+	//fmt.Println("type")
+	//fmt.Println(order_type)
 	if(order_type == CANCELLED){
 		return CANCELLED
 	}
@@ -246,12 +246,12 @@ func Get_type(db *sql.DB, order_id string) int {
 func Get_price(db *sql.DB, order_id string) string {
 	query := "select limit_price from order_info where order_id = '"
 	query = query + order_id + "'; "
-	fmt.Println(query)
+	//fmt.Println(query)
 	row := db.QueryRow(query)
 	var price string
 	row.Scan(&price)
-	//fmt.Println("type")
-	//fmt.Println(order_type)
+	////fmt.Println("type")
+	////fmt.Println(order_type)
 	return price
 }
 
@@ -308,7 +308,7 @@ func Create_table(db *sql.DB) {
 	activity += "order_id int,"
 	activity += "price DECIMAL(32,2),"
 	activity += "time bigint);"
-	fmt.Println(activity)
+	//fmt.Println(activity)
 	_,err = db.Exec(activity)
 
 	//create table order_info 
@@ -322,7 +322,7 @@ func Create_table(db *sql.DB) {
 	order += "amount DECIMAL(32,2),"
 	order += "limit_price DECIMAL(32,2),"
 	order += "time bigint);"
-	fmt.Println(order)
+	//fmt.Println(order)
 	_,err = db.Exec(order)
 	
 	//create table account_info 
@@ -382,7 +382,7 @@ func Verify_symbol(db *sql.DB, symbol_id string) (int,error){
 	check_s +="select count(symbol_id) from symbol_info where symbol_id='"
 	check_s += symbol_id
 	check_s += "'"
-	fmt.Println(check_s)
+	//fmt.Println(check_s)
 
 	rows,err := db.Query(check_s)
 	count := CheckCount(rows)
@@ -400,7 +400,7 @@ func Verify_account(db *sql.DB, account_id string) (int, error) {
 	check_a +="select count(account_id) from account_info where account_id='"
 	check_a +=account_id
 	check_a +="'; "
-	fmt.Println(check_a)
+	//fmt.Println(check_a)
 
 	rows,err := db.Query(check_a)
 	count := CheckCount(rows)
@@ -420,7 +420,7 @@ func Verify_symbol_account(db *sql.DB, symbol_id string, account_id string, num 
 	check_a +="select count(account_id) from account_info where account_id='"
 	check_a +=account_id
 	check_a +="'; "
-	fmt.Println(check_a)
+	//fmt.Println(check_a)
 
 	rows,err := db.Query(check_a)
 
@@ -454,7 +454,7 @@ func Insert_accout_info(db *sql.DB, account_id string, balance string) error{
 	insert += "', '"
 	insert += balance
 	insert += "'); " 
-	fmt.Println(insert)
+	//fmt.Println(insert)
 	_,err := db.Exec(insert)
 	return err
 
@@ -469,7 +469,7 @@ func Insert_account_to_symbol(db *sql.DB, sym string, account_id string, num str
 	insert += "', '"
 	insert += num
 	insert += "');"
-	fmt.Println(insert)
+	//fmt.Println(insert)
 	_,err := db.Exec(insert)
 	return err
 }
@@ -478,14 +478,14 @@ func Insert_activity_info(db *sql.DB, order_id string, price string, shares stri
 	insert := "insert into activity_info(order_id,shares,price,time) values ("
 	time_now := time.Now().Unix()
 	insert = insert + order_id + ", " + shares + ", " + price + ", " + strconv.FormatInt(time_now,10) + "); "
-	fmt.Println(insert)
+	//fmt.Println(insert)
 	db.Exec(insert)
 }
 
 func Insert_order_info(db *sql.DB, sym string, account_id string, open string, amount string, limit string) int64 {
 	query := "insert into order_info(symbol_id, account_id, open, type, amount, limit_price) values ('"
 	query = query + sym + "', '" + account_id + "', " + open + ", " + strconv.FormatInt(EXECUTING, 10) + ", "+amount +", " + limit + ") returning order_id; "
-	fmt.Println(query)
+	//fmt.Println(query)
 	var insert_id int64
 	//row := db.Exec(query)
 	//get_order_id := fmt.Sprintf("select order_id from order_info where (symbol_id ='%s') and (type = 2 ) and (account_id = '%s') and (limit_price = %s) and (open = %s ) ", sym, account_id, limit)
@@ -500,7 +500,7 @@ func Insert_symbol_info(db *sql.DB,sym string) error{
 	insert += "insert into symbol_info values ('"
 	insert += sym
 	insert +="');"
-	fmt.Println(insert)
+	//fmt.Println(insert)
 	_,err := db.Exec(insert)
 	return err
 }
@@ -512,7 +512,7 @@ func Connect_database() (db *sql.DB, errstr error){
 	db, err := sql.Open("postgres", psqlInfo)
 
 	if err != nil{
-		fmt.Println("\nconnection mysql error")
+		//fmt.Println("\nconnection mysql error")
 		return db, err
 		panic(err)
 	}
@@ -522,7 +522,7 @@ func Connect_database() (db *sql.DB, errstr error){
 	err = db.Ping()
 
 	if err != nil{
-		fmt.Println("\nopen mysql error ", err)
+		//fmt.Println("\nopen mysql error ", err)
 		return db, err
 	}	
 	
@@ -541,7 +541,7 @@ func main() {
 	//connect to the database
 	
 	db,_ := Connect_database()
-	fmt.Println("successfully connected!")
+	//fmt.Println("successfully connected!")
 	Create_table(db)
  	//Insert_accout_info()
  	BeginTransaction(db)

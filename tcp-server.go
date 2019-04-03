@@ -396,6 +396,7 @@ func HandleCreateNode(crtNode *xmlparser.Node) ( string){
 
 func HandleConnection(conn net.Conn){
   ///////////////////////////////////////////////////// initialize valriable
+  defer conn.Close()
   r := bufio.NewReader(conn)
   incoming := make(chan string)
   readChan := make(chan bool)
@@ -414,13 +415,13 @@ func HandleConnection(conn net.Conn){
     return
   case result := <- incoming:
     lengthOfContent,err = strconv.ParseUint(strings.Trim(result, "\n"), 10, 64)
-    fmt.Println("length:%v", lengthOfContent)
+    //fmt.Println("length:%v", lengthOfContent)
 
     if err != nil {
       fmt.Println("%v", err)
       return
     }
-    if lengthOfContent > 10000 {
+    if lengthOfContent > 5000000 {
       fmt.Println("the length of content is larger than 10000")
       return
     }
@@ -442,7 +443,7 @@ func HandleConnection(conn net.Conn){
   err = xmlparser.GetXmlNode(contentBuf, &node)
   HandleXML(&node)
   fmt.Println("goroutine end")
-  defer conn.Close()
+  
 }
 
 func main() {
