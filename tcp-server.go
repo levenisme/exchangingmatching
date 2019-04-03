@@ -251,7 +251,7 @@ func within(wg *sync.WaitGroup, f func(*xmlparser.Node, string), node *xmlparser
   wg.Add(1)
   go func() {
       defer wg.Done()
-
+// 如果要改成transaction 在这加tx，然后调用f，defer 
       f(node, account_id)
   }()
 }
@@ -259,13 +259,53 @@ func within(wg *sync.WaitGroup, f func(*xmlparser.Node, string), node *xmlparser
 
 
 func HandleQueryNode(qrNode *xmlparser.Node, account_id string) {
-  //fmt.Println("qqqqqqqqqqquery")
-  qrNode.Rst = "I am query \n"
+  ok, ans := xmlparser.VerifyQueryNode(qrNode)
+  if ok == xmlparser.VALID_NODE {
+    order_id, _ := qrNode.AtrMap["id"]
+    if(dbctl.Authorize_account_order(account_id, order_id)) {
+      res := dbctl.Get_status_xml(db , order_id)
+      qrNode.Rst = res
+      qrNode.Rst_type = ok
+    } else {
+      qrNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>",order_id,"You don't own this order")
+      qrNode.Rst_type = ok
+    }
+  } else {
+    qrNode.Rst = ans
+    qrNode.Rst_type = ok
+  }
 }
 
 func HandleCancelNode(ccNode *xmlparser.Node, account_id string) {
-  //fmt.Println("cccccccccccancel")
-  ccNode.Rst = "I am cancel \n"
+  ok, ans := xmlparser.VerifyCancelNode(ccNode)
+  if ok == xmlparser.VALID_NODE {
+    order_id, _ := qrNode.AtrMap["id"]
+    if(dbctl.Authorize_account_order(account_id, order_id)) {
+      open := dbctl.Get_open_or_caceltime(db, order_id, "open")
+      sym := dbctl.Get_open_or_caceltime(db, order_id, "symbol_id")
+      open_v , _ := strconv.ParseFloat(open, 64)
+      if(math.Abs(open_v) > 0.005) {
+        dbctl.Update_type_and_time(db, order_id)
+        is_buy = IsBuy(open)
+        if(is_buy) {
+          price := dbctl.Get_price(db, order_id)
+          price_v := strconv.ParseFloat(price, 64)
+          dbctl.Add_num_balance_account_info(db, account_id,  strconv.FormatFloat(open_v * price_v, 'f', 2, 64))
+        } else {
+          open_abs := open[1:]
+          dbctl.Add_num_number_acttosym(db, sym , account_id, open_abs)
+        }
+      }
+      qrNode.Rst = dbctl.Get_status_xml(db , order_id)
+      qrNode.Rst_type = ok
+    } else {
+      qrNode.Rst = fmt.Sprintf("<error id=\"%s\">%s</error>",order_id,"You don't own this order")
+      qrNode.Rst_type = ok
+    }
+  } else {
+    qrNode.Rst = ans
+    qrNode.Rst_type = ok
+  }
 }
 
 func CollectResponse( node *xmlparser.Node, response *bytes.Buffer) {

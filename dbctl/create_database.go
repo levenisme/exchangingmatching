@@ -242,6 +242,18 @@ func Get_type(db *sql.DB, order_id string) int {
 	return NOT_EXIST
 }
 
+//get type of the order, to check if it is cancelled
+func Get_price(db *sql.DB, order_id string) string {
+	query := "select limit_price from order_info where order_id = '"
+	query = query + order_id + "'; "
+	fmt.Println(query)
+	row := db.QueryRow(query)
+	var price string
+	row.Scan(&price)
+	//fmt.Println("type")
+	//fmt.Println(order_type)
+	return price
+}
 
 //if query, return xml of status
 func Get_status_xml(db *sql.DB, order_id string) string{

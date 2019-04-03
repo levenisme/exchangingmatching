@@ -57,9 +57,9 @@ var TsctFormat = RcqFormat{"transactions", 2, []string{"id"}, []int{FMT_NUMBER},
 
 var OdFormat = RcqFormat { "order", 1, []string{"sym", "amount", "limit"}, []int {FMT_NOT_REC, FMT_DECIMAL, FMT_POS_DECI}, []string{}}
 
-var QrFormat = RcqFormat {"query", 1, []string{}, []int{}, []string{}}
+var QrFormat = RcqFormat {"query", 1, []string{"id"}, []int{FMT_NUMBER}, []string{}}
 
-var CcFormat = RcqFormat {"cancel", 1, []string{}, []int{}, []string{}}
+var CcFormat = RcqFormat {"cancel", 1, []string{"id"}, []int{FMT_NUMBER}, []string{}}
 
 
 func (n *Node) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -135,6 +135,16 @@ func IsValidDecimalNumber(str string) bool {
 
 func VerifyOrderNode(odNode *Node) (int, string){
 	return VerifyNode(odNode, &OdFormat)
+
+}
+
+func VerifyQueryNode(qrNode *Node) (int, string){
+	return VerifyNode(qrNode, &QrFormat)
+
+}
+
+func VerifyCancelNode(ccNode *Node) (int, string){
+	return VerifyNode(ccNode, &CcFormat)
 
 }
 
