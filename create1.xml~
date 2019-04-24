@@ -1,0 +1,17 @@
+<create>
+  <account id="1" balance="10000000"/>
+  <account id="2" balance="10000000"/>
+  <account id="3" balance="10000000"/>
+  <account id="4" balance="10000000"/>
+  <account id="5" balance="10000000"/>
+  <account id="6" balance="10000000"/>
+  <symbol sym="monster">
+   <account id="1">100</account>
+   <account id="2">100</account>
+   <account id="3">100</account>
+   <account id="4">100</account>
+   <account id="5">100</account>
+   <account id="6">100</account>
+   <account id="7">100</account>
+  </symbol>
+</create>

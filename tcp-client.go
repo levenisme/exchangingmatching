@@ -38,6 +38,6 @@ func SendFileToServer (fileAddr string) {
 }
 
 func main() {
-
-    SendFileToServer("create.xml")
+//    SendFileToServer("create1.xml")
+    SendFileToServer("acc_2.xml")
 }
